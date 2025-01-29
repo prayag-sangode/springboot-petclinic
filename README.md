@@ -1,3 +1,122 @@
+# Spring PetClinic
+
+Spring PetClinic is a sample Spring Boot application that demonstrates the use of Spring technologies in a real-world application.
+
+## Prerequisites
+
+Ensure you have the following installed on your system:
+- Java 17 or later
+- Maven
+- PostgreSQL or MySQL (optional, for database configuration)
+- Docker & Docker Compose (optional, for running services in containers)
+
+## Build and Run the Application
+
+### 1. Build the Application
+
+Run the following command to clean and package the application while skipping tests:
+
+```sh
+mvn clean package -DskipTests
+```
+
+### 2. Run the Application
+
+By default, the application runs using an in-memory database (H2). To start the application:
+
+```sh
+java -jar target/spring-petclinic-3.4.0-SNAPSHOT.jar
+```
+
+The application will be available at: [http://localhost:8080](http://localhost:8080)
+
+## Configuring External Databases
+
+The application supports PostgreSQL and MySQL. To use a specific database, modify the `application.properties` file or set the active profile accordingly.
+
+### 1. Using PostgreSQL
+
+Modify `src/main/resources/application.properties` to use:
+
+```sh
+spring.profiles.active=postgres
+```
+
+Or run with:
+
+```sh
+java -jar -Dspring.profiles.active=postgres target/spring-petclinic-3.4.0-SNAPSHOT.jar
+```
+
+Ensure PostgreSQL is running, and update the database credentials in `application-postgres.properties`:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost/petclinic
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+```
+
+### 2. Using MySQL
+
+Modify `src/main/resources/application.properties` to use:
+
+```sh
+spring.profiles.active=mysql
+```
+
+Or run with:
+
+```sh
+java -jar -Dspring.profiles.active=mysql target/spring-petclinic-3.4.0-SNAPSHOT.jar
+```
+
+Ensure MySQL is running, and update the database credentials in `application-mysql.properties`:
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/petclinic
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+```
+
+
+
+## Running with Docker Compose
+To run the application using Docker Compose, use the following command:
+
+```sh
+docker-compose up --build
+```
+
+This setup includes:
+- A PostgreSQL database container
+- The Spring Boot application container
+
+### Environment Variables
+The `docker-compose.yml` file sets up necessary environment variables:
+
+- `SPRING_PROFILES_ACTIVE=postgres` (to activate the PostgreSQL profile)
+- `POSTGRES_URL=jdbc:postgresql://petclinic-db:5432/petclinic` (database connection URL)
+- `POSTGRES_USER=petclinic`
+- `POSTGRES_PASS=petclinic`
+
+You can modify these values in the `docker-compose.yml` file to match your database setup.
+
+## Accessing the Application
+Once the application starts, access it at:
+
+```
+http://localhost:8080
+```
+
+## Stopping the Application
+To stop the containers, run:
+
+```sh
+docker-compose down
+```
+
+
+
 # Spring PetClinic Sample Application [![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/maven-build.yml)[![Build Status](https://github.com/spring-projects/spring-petclinic/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/spring-projects/spring-petclinic/actions/workflows/gradle-build.yml)
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/spring-projects/spring-petclinic) [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=7517918)
