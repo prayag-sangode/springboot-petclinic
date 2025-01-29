@@ -10,6 +10,15 @@ Ensure you have the following installed on your system:
 - PostgreSQL or MySQL (optional, for database configuration)
 - Docker & Docker Compose (optional, for running services in containers)
 
+```bash
+sudo apt update && sudo apt install openjdk-17-jdk -y
+sudo apt update && sudo apt install maven -y
+sudo apt update && sudo apt -y install docker.io
+sudo apt install postgresql-client-common
+sudo apt-get install postgresql-client
+sudo apt install docker-compose
+```
+
 ## Build and Run the Application localy
 
 ### 1. Build the Application
