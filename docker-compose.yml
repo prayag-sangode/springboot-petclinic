@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17.0
+    container_name: petclinic-db
+    environment:
+      POSTGRES_USER: petclinic
+      POSTGRES_PASSWORD: petclinic
+      POSTGRES_DB: petclinic
+    ports:
+      - "5432:5432"
+    networks:
+      - petclinic-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petclinic-app
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      POSTGRES_URL: jdbc:postgresql://petclinic-db:5432/petclinic  # 👈 Add this
+      POSTGRES_USER: petclinic  # 👈 Add this
+      POSTGRES_PASS: petclinic  # 👈 Add this
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - petclinic-network
+
+networks:
+  petclinic-network:
+    driver: bridge
