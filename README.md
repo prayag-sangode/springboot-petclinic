@@ -19,9 +19,9 @@ sudo apt-get install postgresql-client
 sudo apt install docker-compose
 ```
 
-## Build and Run the Application localy
+## 1. Build and Run the Application locally
 
-### 1. Build the Application
+### Build the Application
 
 Run the following command to clean and package the application while skipping tests:
 
@@ -29,7 +29,7 @@ Run the following command to clean and package the application while skipping te
 mvn clean package -DskipTests
 ```
 
-### 2. Run the Application
+### Run the Application
 
 By default, the application runs using an in-memory database (H2). To start the application:
 
@@ -71,7 +71,7 @@ A similar setup is possible for MySQL and PostgreSQL if a persistent database co
 
 The application supports PostgreSQL and MySQL. To use a specific database, modify the `application.properties` file or set the active profile accordingly.
 
-### 1. Using PostgreSQL
+### Using PostgreSQL
 
 Modify `src/main/resources/application.properties` to use:
 
@@ -93,7 +93,7 @@ spring.datasource.username=your_username
 spring.datasource.password=your_password
 ```
 
-### 2. Using MySQL
+### Using MySQL
 
 Modify `src/main/resources/application.properties` to use:
 
@@ -115,7 +115,7 @@ spring.datasource.username=your_username
 spring.datasource.password=your_password
 ```
 
-## Running with Docker Compose
+## 2. Running with Docker Compose
 To run the application using Docker Compose, use the following command:
 
 ```sh
@@ -157,5 +157,9 @@ You can build a container image (if you have a docker daemon) using the Spring B
 ```bash
 ./mvnw spring-boot:build-image
 ```
+
+## 3. Running with k8s
+
+In progress
 
 
