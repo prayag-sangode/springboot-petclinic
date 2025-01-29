@@ -152,7 +152,7 @@ docker-compose down
 
 ## Building a Container
 
-TYou can build a container image (if you have a docker daemon) using the Spring Boot build plugin without Dockerfile aswell:
+You can build a container image (if you have a docker daemon) using the Spring Boot build plugin without Dockerfile aswell:
 
 ```bash
 ./mvnw spring-boot:build-image
