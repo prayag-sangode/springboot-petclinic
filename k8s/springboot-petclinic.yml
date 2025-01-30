@@ -30,8 +30,7 @@ spec:
     spec:
       containers:
         - name: workload
-          image: prayags/springboot-petclinic:v2
-          #image: dsyer/springboot-petclinic
+          image: prayags/springboot-petclinic:v1
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: postgres
