@@ -161,6 +161,113 @@ You can build a container image (if you have a docker daemon) using the Spring B
 
 ## 3. Running with k8s
 
-In progress
+# Spring Boot PetClinic on Kubernetes
 
+Spring Boot PetClinic application on Kubernetes using PostgreSQL as the database.
+
+## Prerequisites
+
+Ensure you have the following installed:
+- [Docker](https://www.docker.com/)
+- [Minikube](https://minikube.sigs.k8s.io/docs/) or a running Kubernetes cluster
+- [Kubectl](https://kubernetes.io/docs/tasks/tools/)
+
+
+### Create Kubernetes Secret for PostgreSQL Password
+
+```sh
+echo -n "petclinic" | base64
+```
+Output:
+```
+cGV0Y2xpbmlj
+```
+Create the secret manifest `k8s/postgres-db-secret.yml`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-db-secret
+type: Opaque
+data:
+  password: cGV0Y2xpbmlj   # Base64-encoded password
+```
+Apply the secret:
+```sh
+kubectl apply -f k8s/postgres-db-secret.yml
+```
+
+### Deploy PostgreSQL
+```sh
+kubectl apply -f k8s/postgres-db.yml
+```
+
+### Deploy Spring Boot PetClinic
+```sh
+kubectl apply -f k8s/springboot-petclinic.yml
+```
+
+### Verify Deployment
+Check all running pods and services:
+```sh
+kubectl get all
+```
+Expected Output:
+```
+NAME                                      READY   STATUS    RESTARTS   AGE
+pod/postgres-db-xxxxx                     1/1     Running   0          16s
+pod/springboot-petclinic-xxxxx            1/1     Running   0          6s
+
+NAME                           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+service/postgres-db            ClusterIP   10.152.183.138   <none>        5432/TCP       16s
+service/springboot-petclinic   NodePort    10.152.183.121   <none>        80:31397/TCP   6s
+```
+
+### Access the Application
+Since `springboot-petclinic` is a `NodePort` service, find its port:
+```sh
+kubectl get service springboot-petclinic
+```
+Example Output:
+```
+NAME                   TYPE       CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+springboot-petclinic   NodePort   10.152.183.121   <none>        80:31397/TCP   6s
+```
+Access the application using:
+```sh
+minikube service springboot-petclinic
+```
+or, if running on a remote cluster:
+```sh
+http://<NODE_IP>:<NODE_PORT>
+```
+For example:
+```
+http://localhost:31397
+```
+
+## Cleanup
+To delete all deployed resources:
+```sh
+kubectl delete -f k8s/
+```
+
+## Notes
+- PostgreSQL password is stored securely using a Kubernetes Secret.
+- The application connects to PostgreSQL using environment variables.
+- Default credentials:
+  - **User**: `petclinic`
+  - **Password**: Stored in the Kubernetes Secret.
+  - **Database**: `petclinic`
+
+---
+
+## Source and Reference
+
+This project is based on the open-source [Spring PetClinic](https://github.com/spring-projects/spring-petclinic.git).
+
+## Credits
+
+Thanks to the Spring PetClinic team for the original implementation.
 
