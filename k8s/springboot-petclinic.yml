@@ -30,17 +30,18 @@ spec:
     spec:
       containers:
         - name: workload
-          image: prayags/springboot-petclinic:v1
+          image: prayags/springboot-petclinic:v3
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: postgres
             - name: SERVICE_BINDING_ROOT
               value: /bindings
+            - name: MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED
+              value: "true"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "metrics,health,prometheus"
             - name: SPRING_APPLICATION_JSON
-              value: |
-                {
-                  "management.endpoint.health.probes.add-additional-paths": true
-                }
+              value: '{"management":{"endpoints":{"web":{"exposure":{"include":"health,metrics,prometheus"}}},"metrics":{"export":{"prometheus":{"enabled":true}}}}}'
             - name: POSTGRES_URL
               value: jdbc:postgresql://postgres-db:5432/petclinic
             - name: POSTGRES_USER

@@ -1,0 +1,30 @@
+# values.yaml
+
+# Prometheus Configuration
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+      name: "prometheus-additional-scrape-configs"
+      key: "prometheus.yml"
+  
+  service:
+    type: NodePort
+    port: 9090
+    nodePort: 30090  # Prometheus NodePort
+
+# Grafana Configuration
+grafana:
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 31000  # Grafana NodePort
+
+# Alertmanager Configuration
+alertmanager:
+  alertmanagerSpec:
+    externalUrl: http://<NODE_IP>:9093  # Optional, set if needed for external URL
+  
+  service:
+    type: NodePort
+    port: 9093
+    nodePort: 32000  # Alertmanager NodePort
