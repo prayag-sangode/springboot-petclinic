@@ -263,6 +263,27 @@ kubectl delete -f k8s/
 
 ---
 
+## Grafana Dashboard for Spring Boot Application
+
+### Make sure Prometheus and Grafana is installed.
+
+This Grafana dashboard is designed to visualize metrics from a Spring Boot application with Micrometer integration. You can either create your own custom dashboard or import an existing one.
+
+### Option 1: Create Your Own Dashboard
+You can create your own Grafana dashboard by manually adding the required metrics and configuring visualizations to suit your needs.
+
+### Option 2: Import the Pre-built Micrometer/SpringBoot Dashboard
+For a quick setup, you can import the pre-built dashboard for Spring Boot applications with Micrometer metrics. 
+
+1. In Grafana, go to **Dashboards > Manage**.
+2. Click on **Import**.
+3. Enter the dashboard ID: `4701`.
+4. Select your data source (e.g., Prometheus).
+5. Click **Import** to load the pre-configured dashboard.
+
+This will provide you with a complete overview of your Spring Boot application's performance metrics, including HTTP requests, JVM stats, and more.
+
+
 ## Source and Reference
 
 This project is based on the open-source [Spring PetClinic](https://github.com/spring-projects/spring-petclinic.git).
