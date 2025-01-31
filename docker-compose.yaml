@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:17.0
+    container_name: petclinic-db
+    environment:
+      POSTGRES_USER: petclinic
+      POSTGRES_PASSWORD: petclinic
+      POSTGRES_DB: petclinic
+    ports:
+      - "5432:5432"
+    networks:
+      - petclinic-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petclinic-app
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://petclinic-db:5432/petclinic
+      SPRING_DATASOURCE_USERNAME: petclinic
+      SPRING_DATASOURCE_PASSWORD: petclinic
+      MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED: "true"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "metrics,health,prometheus"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - petclinic-network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Mount prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - petclinic-network
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml # Mount alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - petclinic-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini  # Mount the custom grafana.ini
+    networks:
+      - petclinic-network
+
+networks:
+  petclinic-network:
+    driver: bridge
