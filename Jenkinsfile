@@ -7,6 +7,8 @@ pipeline {
         SONAR_CRED = credentials('sonarcloud-id')          // SonarCloud Token
         SNYK_CRED = credentials('snyk-id')                 // Snyk Token
         DOCKER_IMAGE = "prayags/springboot-petclinic"
+        SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
+        PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
     }
 
     stages {
