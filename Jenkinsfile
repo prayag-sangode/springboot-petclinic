@@ -50,7 +50,8 @@ pipeline {
                         -Dsonar.projectKey=$DOCKER_IMAGE \
                         -Dsonar.organization=my-org \
                         -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=$SONAR_TOKEN
+                        -Dsonar.login=$SONAR_TOKEN \
+                        -Dsonar.java.binaries=target/classes
                         '''
                     }
                 }
