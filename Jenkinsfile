@@ -64,7 +64,6 @@ pipeline {
                 script {
                     // Scan the Docker image for vulnerabilities using Snyk
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        sh 'npm install -g snyk' // Ensure Snyk CLI is installed
                         sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
                         sh 'snyk test --all-projects --docker $DOCKER_IMAGE:${BUILD_NUMBER}' // Run Snyk security test
                     }
