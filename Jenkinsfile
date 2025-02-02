@@ -25,8 +25,8 @@ pipeline {
                 withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
                     sh '''
                     sonar-scanner \
-                    -Dsonar.projectKey=my-project-key \
-                    -Dsonar.organization=my-org \
+                    -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
+                    -Dsonar.organization=prayag-sangode \
                     -Dsonar.host.url=https://sonarcloud.io \
                     -Dsonar.login=$SONAR_TOKEN \
                     -Dsonar.java.binaries=target/classes
