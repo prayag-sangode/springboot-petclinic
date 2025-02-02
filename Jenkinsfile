@@ -2,101 +2,95 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'sonarcloud'  // SonarCloud service name
-        SCA_TOOL = 'snyk'         // Snyk for Software Composition Analysis (SCA)
-        DOCKER_IMAGE = 'springboot-petclinic'  // Docker image name
+        DOCKER_CREDENTIALS = credentials('dockerhub-id')  // DockerHub Credentials
+        KUBECONFIG_CRED = credentials('kubeconfig-id')    // Kubernetes Kubeconfig
+        SONAR_CRED = credentials('sonarcloud-id')          // SonarCloud Token
+        SNYK_CRED = credentials('snyk-id')                 // Snyk Token
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                checkout scm
-            }
-        }
-
-        stage('Build Application') {
-            steps {
-                script {
-                    echo 'Building the Java application...'
-                    sh 'mvn clean install'  // Build using Maven
-                }
-            }
-        }
-
-        stage('Static Code Analysis (SonarCloud)') {
-            steps {
-                script {
-                    echo 'Running SonarCloud static code analysis...'
-                    withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONAR_TOKEN')]) {
-                        sh "mvn sonar:sonar -Dsonar.host.url=${SONARQUBE} -Dsonar.login=${SONAR_TOKEN}"  // SonarCloud analysis
-                    }
-                }
-            }
-        }
-
-        stage('Software Composition Analysis (Snyk)') {
-            steps {
-                script {
-                    echo 'Running Snyk vulnerability scan...'
-                    withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
-                        sh 'snyk test --all-projects --token=$SNYK_TOKEN'  // Dependency vulnerability scan with Snyk
-                    }
-                }
-            }
-        }
-
-        stage('Unit Tests') {
-            steps {
-                script {
-                    echo 'Running unit tests...'
-                    sh 'mvn test'  // Running tests
-                }
+                checkout scm  // Pull the source code from the repository
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    echo 'Building Docker image...'
-                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_HUB_CREDENTIALS')]) {
-                        sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'  // Docker build
+                    // Build the Docker image from Dockerfile
+                    docker.build("my-app:${BUILD_NUMBER}") // Docker image name
+                }
+            }
+        }
+
+        stage('Push Docker Image to DockerHub') {
+            steps {
+                script {
+                    // Log in to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        // Push the Docker image
+                        sh "docker push my-app:${BUILD_NUMBER}"
                     }
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('SonarCloud Scan') {
             steps {
                 script {
-                    echo 'Pushing Docker image to Docker Hub...'
-                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_HUB_CREDENTIALS')]) {
-                        sh 'docker login -u $DOCKER_HUB_CREDENTIALS_USR -p $DOCKER_HUB_CREDENTIALS_PSW'  // Docker login
-                        sh 'docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Push Docker image to registry
+                    // Perform SonarCloud analysis
+                    withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                        sonar-scanner \
+                        -Dsonar.projectKey=my-app \
+                        -Dsonar.organization=my-org \
+                        -Dsonar.host.url=https://sonarcloud.io \
+                        -Dsonar.login=$SONAR_TOKEN
+                        '''
                     }
                 }
             }
         }
 
-        stage('Deploy to Staging (Kubernetes)') {
+        stage('Snyk Security Scan') {
             steps {
                 script {
-                    echo 'Deploying to Kubernetes staging...'
-                    withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG_FILE')]) {
-                        sh "kubectl --kubeconfig=$KUBECONFIG_FILE set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=staging"  // Kubernetes deployment
+                    // Scan the Docker image for vulnerabilities using Snyk
+                    withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
+                        sh 'npm install -g snyk' // Ensure Snyk CLI is installed
+                        sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
+                        sh 'snyk test --all-projects --docker my-app:${BUILD_NUMBER}' // Run Snyk security test
                     }
                 }
             }
         }
 
-        stage('Deploy to Production') {
-            when {
-                branch 'main'  // Only deploy to production on 'main' branch
-            }
+        stage('Trivy Scan') {
             steps {
                 script {
-                    echo 'Deploying to Kubernetes production...'
-                    withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG_FILE')]) {
-                        sh "kubectl --kubeconfig=$KUBECONFIG_FILE set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=production"  // Kubernetes deployment
+                    // Scan the Docker image for vulnerabilities using Trivy
+                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy my-app:${BUILD_NUMBER}'  // Run Trivy scan
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    // Set up Kubernetes configuration
+                    withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
+                        sh '''
+                        mkdir -p $HOME/.kube
+                        cp $KUBECONFIG_FILE $HOME/.kube/config
+                        chmod 600 $HOME/.kube/config
+                        '''
+                        // Deploy the Docker image to Kubernetes
+                        sh '''
+                        kubectl set image deployment/my-app-deployment my-app=my-app:${BUILD_NUMBER}
+                        kubectl rollout restart deployment/my-app-deployment
+                        '''
                     }
                 }
             }
@@ -105,12 +99,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline successfully completed!'
-            slackSend(channel: '#devops', message: "Build ${BUILD_NUMBER} succeeded!")
+            echo 'Pipeline completed successfully!'
         }
         failure {
             echo 'Pipeline failed!'
-            slackSend(channel: '#devops', message: "Build ${BUILD_NUMBER} failed!")
         }
     }
 }
