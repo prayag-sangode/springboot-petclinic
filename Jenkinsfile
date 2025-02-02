@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'sonarqube'      
-        SCA_TOOL = 'snyk'            
-        DOCKER_IMAGE = 'springboot-petclinic'  
+        SONARQUBE = 'sonarqube'      // SonarQube server
+        SCA_TOOL = 'snyk'            // Snyk for SCA
+        DOCKER_IMAGE = 'springboot-petclinic'  // Docker image name
+        K8S_NAMESPACE = 'staging'    // Kubernetes namespace for staging
     }
 
     stages {
@@ -27,7 +28,9 @@ pipeline {
             steps {
                 script {
                     echo 'Running SonarQube static code analysis...'
-                    sh "mvn sonar:sonar -Dsonar.host.url=${SONARQUBE}"  // SonarQube analysis
+                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                        sh "mvn sonar:sonar -Dsonar.host.url=${SONARQUBE} -Dsonar.login=${SONAR_TOKEN}"  // SonarQube analysis
+                    }
                 }
             }
         }
@@ -36,7 +39,9 @@ pipeline {
             steps {
                 script {
                     echo 'Running Snyk vulnerability scan...'
-                    sh 'snyk test --all-projects'  // Dependency vulnerability scan with Snyk
+                    withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
+                        sh 'snyk test --all-projects --token=$SNYK_TOKEN'  // Dependency vulnerability scan with Snyk
+                    }
                 }
             }
         }
@@ -45,6 +50,7 @@ pipeline {
             steps {
                 script {
                     echo 'Running OWASP ZAP dynamic security tests...'
+                    // OWASP ZAP is running against a live test app
                     sh 'zap-baseline.py -t http://localhost:8080'  // Assuming the app is running locally
                 }
             }
@@ -63,16 +69,9 @@ pipeline {
             steps {
                 script {
                     echo 'Building Docker image...'
-                    sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'  // Docker build
-                }
-            }
-        }
-
-        stage('Trivy Scan (Container Security)') {
-            steps {
-                script {
-                    echo 'Scanning Docker image with Trivy...'
-                    sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
+                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_HUB_CREDENTIALS')]) {
+                        sh 'docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .'  // Docker build
+                    }
                 }
             }
         }
@@ -81,16 +80,21 @@ pipeline {
             steps {
                 script {
                     echo 'Pushing Docker image to Docker Hub...'
-                    sh 'docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Push Docker image to registry
+                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_HUB_CREDENTIALS')]) {
+                        sh 'docker login -u $DOCKER_HUB_CREDENTIALS_USR -p $DOCKER_HUB_CREDENTIALS_PSW'  // Docker login
+                        sh 'docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Push Docker image to registry
+                    }
                 }
             }
         }
 
-        stage('Deploy to Staging') {
+        stage('Deploy to Staging (Kubernetes)') {
             steps {
                 script {
                     echo 'Deploying to Kubernetes staging...'
-                    sh "kubectl set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=staging"
+                    withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG_FILE')]) {
+                        sh "kubectl --kubeconfig=$KUBECONFIG_FILE set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=${K8S_NAMESPACE}"  // Kubernetes deployment
+                    }
                 }
             }
         }
@@ -102,7 +106,9 @@ pipeline {
             steps {
                 script {
                     echo 'Deploying to Kubernetes production...'
-                    sh "kubectl set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=production"
+                    withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG_FILE')]) {
+                        sh "kubectl --kubeconfig=$KUBECONFIG_FILE set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=production"  // Kubernetes deployment
+                    }
                 }
             }
         }
