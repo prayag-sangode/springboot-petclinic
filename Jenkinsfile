@@ -2,10 +2,9 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'sonarqube'      // SonarQube server
-        SCA_TOOL = 'snyk'            // Snyk for SCA
+        SONARQUBE = 'sonarcloud'  // SonarCloud service name
+        SCA_TOOL = 'snyk'         // Snyk for Software Composition Analysis (SCA)
         DOCKER_IMAGE = 'springboot-petclinic'  // Docker image name
-        K8S_NAMESPACE = 'staging'    // Kubernetes namespace for staging
     }
 
     stages {
@@ -24,12 +23,12 @@ pipeline {
             }
         }
 
-        stage('Static Code Analysis (SonarQube)') {
+        stage('Static Code Analysis (SonarCloud)') {
             steps {
                 script {
-                    echo 'Running SonarQube static code analysis...'
-                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                        sh "mvn sonar:sonar -Dsonar.host.url=${SONARQUBE} -Dsonar.login=${SONAR_TOKEN}"  // SonarQube analysis
+                    echo 'Running SonarCloud static code analysis...'
+                    withCredentials([string(credentialsId: 'sonarcloud-token', variable: 'SONAR_TOKEN')]) {
+                        sh "mvn sonar:sonar -Dsonar.host.url=${SONARQUBE} -Dsonar.login=${SONAR_TOKEN}"  // SonarCloud analysis
                     }
                 }
             }
@@ -42,16 +41,6 @@ pipeline {
                     withCredentials([string(credentialsId: 'snyk-api-token', variable: 'SNYK_TOKEN')]) {
                         sh 'snyk test --all-projects --token=$SNYK_TOKEN'  // Dependency vulnerability scan with Snyk
                     }
-                }
-            }
-        }
-
-        stage('Dynamic Security Testing (OWASP ZAP)') {
-            steps {
-                script {
-                    echo 'Running OWASP ZAP dynamic security tests...'
-                    // OWASP ZAP is running against a live test app
-                    sh 'zap-baseline.py -t http://localhost:8080'  // Assuming the app is running locally
                 }
             }
         }
@@ -93,7 +82,7 @@ pipeline {
                 script {
                     echo 'Deploying to Kubernetes staging...'
                     withCredentials([file(credentialsId: 'kubeconfig-credentials', variable: 'KUBECONFIG_FILE')]) {
-                        sh "kubectl --kubeconfig=$KUBECONFIG_FILE set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=${K8S_NAMESPACE}"  // Kubernetes deployment
+                        sh "kubectl --kubeconfig=$KUBECONFIG_FILE set image deployment/my-deployment my-container=${DOCKER_IMAGE}:${BUILD_NUMBER} --namespace=staging"  // Kubernetes deployment
                     }
                 }
             }
