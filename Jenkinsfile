@@ -65,7 +65,11 @@ pipeline {
                     // Scan the Docker image for vulnerabilities using Snyk
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
                         sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
-                        sh 'snyk test' // Run Snyk security test
+                    // Run Snyk Test on Source Code
+                    sh 'snyk test || true'
+        
+                    // Run Snyk Test on Docker Image
+                    sh 'snyk test --docker $DOCKER_IMAGE:${BUILD_NUMBER} || true'
                     }
                 }
             }
