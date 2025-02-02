@@ -79,7 +79,7 @@ pipeline {
             steps {
                 script {
                     // Scan the Docker image for vulnerabilities using Trivy
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy $DOCKER_IMAGE:${BUILD_NUMBER}'  // Run Trivy scan
+                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy image $DOCKER_IMAGE:${BUILD_NUMBER}'  // Run Trivy scan
                 }
             }
         }
