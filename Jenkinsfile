@@ -6,6 +6,7 @@ pipeline {
         KUBECONFIG_CRED = credentials('kubeconfig-id')    // Kubernetes Kubeconfig
         SONAR_CRED = credentials('sonarcloud-id')          // SonarCloud Token
         SNYK_CRED = credentials('snyk-id')                 // Snyk Token
+        DOCKER_IMAGE = "prayags/springboot-petclinic"
     }
 
     stages {
@@ -19,7 +20,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image from Dockerfile
-                    docker.build("my-app:${BUILD_NUMBER}") // Docker image name
+                    docker.build("$DOCKER_IMAGE:${BUILD_NUMBER}") // Docker image name
                 }
             }
         }
@@ -31,7 +32,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                         // Push the Docker image
-                        sh "docker push my-app:${BUILD_NUMBER}"
+                        sh "docker push $DOCKER_IMAGE:${BUILD_NUMBER}"
                     }
                 }
             }
@@ -44,7 +45,7 @@ pipeline {
                     withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
                         sh '''
                         sonar-scanner \
-                        -Dsonar.projectKey=my-app \
+                        -Dsonar.projectKey=$DOCKER_IMAGE \
                         -Dsonar.organization=my-org \
                         -Dsonar.host.url=https://sonarcloud.io \
                         -Dsonar.login=$SONAR_TOKEN
@@ -61,7 +62,7 @@ pipeline {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
                         sh 'npm install -g snyk' // Ensure Snyk CLI is installed
                         sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
-                        sh 'snyk test --all-projects --docker my-app:${BUILD_NUMBER}' // Run Snyk security test
+                        sh 'snyk test --all-projects --docker $DOCKER_IMAGE:${BUILD_NUMBER}' // Run Snyk security test
                     }
                 }
             }
@@ -71,7 +72,7 @@ pipeline {
             steps {
                 script {
                     // Scan the Docker image for vulnerabilities using Trivy
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy my-app:${BUILD_NUMBER}'  // Run Trivy scan
+                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy $DOCKER_IMAGE:${BUILD_NUMBER}'  // Run Trivy scan
                 }
             }
         }
@@ -88,8 +89,8 @@ pipeline {
                         '''
                         // Deploy the Docker image to Kubernetes
                         sh '''
-                        kubectl set image deployment/my-app-deployment my-app=my-app:${BUILD_NUMBER}
-                        kubectl rollout restart deployment/my-app-deployment
+                        kubectl set image deployment/$DOCKER_IMAGE-deployment $DOCKER_IMAGE=$DOCKER_IMAGE:${BUILD_NUMBER}
+                        kubectl rollout restart deployment/$DOCKER_IMAGE-deployment
                         '''
                     }
                 }
