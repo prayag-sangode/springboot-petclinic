@@ -18,15 +18,6 @@ pipeline {
             }
         }
 
-        stage('Build Project with Maven') {
-            steps {
-                script {
-                    // Build the project using Maven to generate compiled classes (target directory)
-                    sh 'mvn clean install'
-                }
-            }
-        }
-
         stage('SonarCloud Scan') {
             steps {
                 script {
