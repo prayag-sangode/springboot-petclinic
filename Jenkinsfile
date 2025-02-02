@@ -18,24 +18,11 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Project with Maven') {
             steps {
                 script {
-                    // Build the Docker image from Dockerfile
-                    docker.build("$DOCKER_IMAGE:${BUILD_NUMBER}") // Docker image name
-                }
-            }
-        }
-
-        stage('Push Docker Image to DockerHub') {
-            steps {
-                script {
-                    // Log in to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        // Push the Docker image
-                        sh "docker push $DOCKER_IMAGE:${BUILD_NUMBER}"
-                    }
+                    // Build the project using Maven to generate compiled classes (target directory)
+                    sh 'mvn clean install'
                 }
             }
         }
@@ -53,6 +40,28 @@ pipeline {
                         -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.java.binaries=target/classes
                         '''
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image from Dockerfile
+                    docker.build("$DOCKER_IMAGE:${BUILD_NUMBER}") // Docker image name
+                }
+            }
+        }
+
+        stage('Push Docker Image to DockerHub') {
+            steps {
+                script {
+                    // Log in to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        // Push the Docker image
+                        sh "docker push $DOCKER_IMAGE:${BUILD_NUMBER}"
                     }
                 }
             }
