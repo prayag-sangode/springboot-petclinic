@@ -18,23 +18,24 @@ pipeline {
             }
         }
 
-        stage('SonarCloud Scan') {
-            steps {
-                script {
-                    // Perform SonarCloud analysis
-                    withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                        sonar-scanner \
-                        -Dsonar.projectKey=$DOCKER_IMAGE \
-                        -Dsonar.organization=my-org \
-                        -Dsonar.host.url=https://sonarcloud.io \
-                        -Dsonar.login=$SONAR_TOKEN \
-                        -Dsonar.java.binaries=target/classes
-                        '''
-                    }
+    stage('SonarCloud Scan') {
+        steps {
+            script {
+                // Perform SonarCloud analysis
+                withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                    sonar-scanner \
+                    -Dsonar.projectKey=my-project-key \
+                    -Dsonar.organization=my-org \
+                    -Dsonar.host.url=https://sonarcloud.io \
+                    -Dsonar.login=$SONAR_TOKEN \
+                    -Dsonar.java.binaries=target/classes
+                    '''
                 }
             }
         }
+    }
+
         
         stage('Build Docker Image') {
             steps {
