@@ -21,21 +21,22 @@ pipeline {
         }
 
         stage('Build & SonarQube Analysis') {
-                    steps {
-                        script {
-                            // Run mvn clean install followed by sonar-scanner
-                            sh """
-                            sonar-scanner \
-                                -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \
-                                -Dsonar.organization=${env.SONAR_ORGANIZATION} \
-                                -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                                -Dsonar.login=${env.SONAR_LOGIN} \
-                                -Dsonar.sources=.
-                            """
-                        }
+            steps {
+                script {
+                    // Run SonarQube scan using sonar-scanner-cli Docker image
+                    docker.image('sonarsource/sonar-scanner-cli').inside {
+                        sh """
+                        sonar-scanner \
+                            -Dsonar.projectKey=${env.PROJECT_KEY} \
+                            -Dsonar.organization=${env.ORGANIZATION} \
+                            -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                            -Dsonar.login=${env.SONAR_LOGIN} \
+                            -Dsonar.sources=.
+                        """
                     }
                 }
-        
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
