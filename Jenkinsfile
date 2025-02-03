@@ -116,46 +116,6 @@ pipeline {
         //    }
         //}
 
-        stage('Deploy to Kubernetes') {
-            agent {
-                docker {
-                    image 'bitnami/kubectl:latest'  
-                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.kube:/root/.kube'
-                }
-            }
-            environment {
-                KUBECONFIG = "/root/.kube/config"
-            }
-            steps {
-                script {
-                    withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
-                        sh '''
-                            mkdir -p /root/.kube
-                            cp $KUBECONFIG_FILE /root/.kube/config
-                            chmod 600 /root/.kube/config
-                        '''
-        
-                        // Debug Kubernetes context
-                        sh 'kubectl config view'
-                        sh 'kubectl cluster-info'
-                        sh 'kubectl get nodes'
-                        sh 'kubectl get deployments -A'
-        
-                        // Ensure deployment exists before updating image
-                        sh 'kubectl get deployment ${DEPLOYMENT_NAME} -n dev || echo "Deployment not found!"'
-        
-                        // Update image & restart deployment
-                        sh '''
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKER_IMAGE}:${BUILD_NUMBER} -n dev
-                            kubectl rollout restart deployment/${DEPLOYMENT_NAME} -n dev
-                        '''
-                    }
-                }
-            }
-        }
-
-
-
     post {
         success {
             echo 'Pipeline completed successfully!'
