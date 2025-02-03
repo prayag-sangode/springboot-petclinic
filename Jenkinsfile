@@ -5,6 +5,7 @@ pipeline {
         DOCKER_CREDENTIALS = credentials('dockerhub-id')   
         KUBECONFIG_CRED = credentials('kubeconfig-id')                    
         DOCKER_IMAGE = "prayags/springboot-petclinic"
+        DEPLOYMENT_NAME = "springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
         SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
@@ -136,8 +137,8 @@ pipeline {
                         
                         // Deploy updated image to Kubernetes
                         sh '''
-                            kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
-                            kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
+                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            kubectl rollout restart deployment/${DEPLOYMENT_NAME}
                         '''
                     }
                 }
