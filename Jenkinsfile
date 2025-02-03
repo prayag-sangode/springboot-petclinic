@@ -20,22 +20,22 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    docker.image('sonarsource/sonar-scanner-cli:latest')
-                        .inside('--user root -v $PWD:/usr/src') {
-                        sh """
-                        sonar-scanner \
-                          -Dsonar.projectKey=$PROJECT_KEY \
-                          -Dsonar.organization=$ORGANIZATION \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=${SONAR_LOGIN} \
-                          -Dsonar.sources=. \
-                        """
+        stage('Build & SonarQube Analysis') {
+                    steps {
+                        script {
+                            // Run mvn clean install followed by sonar-scanner
+                            sh """
+                            mvn clean install && \
+                            sonar-scanner \
+                                -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \
+                                -Dsonar.organization=${env.SONAR_ORGANIZATION} \
+                                -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                                -Dsonar.login=${env.SONAR_LOGIN} \
+                                -Dsonar.sources=.
+                            """
+                        }
                     }
                 }
-            }
         }
 
         stage('Build Docker Image') {
