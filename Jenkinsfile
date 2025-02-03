@@ -52,36 +52,44 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Build the Docker image from Dockerfile
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
-                }
-            }
-        }
+        //stage('Build Docker Image') {
+        //    steps {
+        //        script {
+        //            // Build the Docker image from Dockerfile
+        //            docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
+        //        }
+        //    }
+        //}
 
-        stage('Push Docker Image to DockerHub') {
-            steps {
-                script {
-                    // Log in to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        // Push the Docker image
-                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-                    }
-                }
-            }
-        }
+        //stage('Push Docker Image to DockerHub') {
+        //    steps {
+        //        script {
+        //            // Log in to Docker Hub
+        //            withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+        //                sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+        //                // Push the Docker image
+        //                sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+        //            }
+        //        }
+        //    }
+        //}
 
         stage('Snyk Security Scan') {
+            agent {
+                docker {
+                    image 'snyk/snyk-cli:latest'  // Use the official Snyk Docker image
+                    args '--user root -v $PWD:/usr/src'  // Mount your workspace directory
+                }
+            }
             steps {
                 script {
-                    // Scan the Docker image for vulnerabilities using Snyk
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
+                        // Authenticate with Snyk using the token
+                        sh 'snyk auth $SNYK_TOKEN'
+        
                         // Run Snyk Test on Source Code
                         sh 'snyk test || true'
+        
                         // Run Snyk Test on Docker Image
                         sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
                     }
@@ -89,14 +97,22 @@ pipeline {
             }
         }
 
+
         stage('Trivy Scan') {
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'  // Use the official Trivy Docker image
+                    args '--user root -v $PWD:/project -v /var/run/docker.sock:/var/run/docker.sock'  // Mount necessary volumes
+                }
+            }
             steps {
                 script {
-                    // Scan the Docker image for vulnerabilities using Trivy
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Run Trivy scan
+                    // Run Trivy scan on Docker image
+                    sh 'trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Scan the Docker image for vulnerabilities
                 }
             }
         }
+
 
         stage('Deploy to Kubernetes') {
             steps {
