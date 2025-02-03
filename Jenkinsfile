@@ -26,6 +26,10 @@ pipeline {
                     // Run SonarQube scan using sonar-scanner-cli Docker image
                     docker.image('sonarsource/sonar-scanner-cli').inside {
                         sh """
+                        # Ensure cache directory has the correct permissions
+                        sudo mkdir -p /opt/sonar-scanner/.sonar/cache
+                        sudo chmod -R 777 /opt/sonar-scanner/.sonar
+
                         sonar-scanner \
                             -Dsonar.projectKey=${env.PROJECT_KEY} \
                             -Dsonar.organization=${env.ORGANIZATION} \
