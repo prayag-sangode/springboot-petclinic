@@ -25,7 +25,6 @@ pipeline {
                         script {
                             // Run mvn clean install followed by sonar-scanner
                             sh """
-                            mvn clean install && \
                             sonar-scanner \
                                 -Dsonar.projectKey=${env.SONAR_PROJECT_KEY} \
                                 -Dsonar.organization=${env.SONAR_ORGANIZATION} \
