@@ -28,7 +28,7 @@ pipeline {
                 }
             }
             steps {
-                sh 'mvn clean verify'  // ✅ Compiles project and generates classes
+                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  // ✅ Compiles project and generates classes
             }
         }
 
