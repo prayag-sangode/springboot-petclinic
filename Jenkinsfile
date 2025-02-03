@@ -115,7 +115,6 @@ pipeline {
         //    }
         //}
 
-
         stage('Deploy to Kubernetes') {
             agent {
                 docker {
@@ -144,6 +143,7 @@ pipeline {
                 }
             }
         }
+    }
 
     post {
         success {
