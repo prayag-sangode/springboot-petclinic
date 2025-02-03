@@ -5,7 +5,6 @@ pipeline {
         DOCKER_CREDENTIALS = credentials('dockerhub-id')   
         KUBECONFIG_CRED = credentials('kubeconfig-id')                    
         DOCKER_IMAGE = "prayags/springboot-petclinic"
-        // SNYK_CRED = credentials('snyk-id') 
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
         SONAR_CRED = credentials('sonarcloud-id') 
@@ -22,43 +21,24 @@ pipeline {
             }
         }
 
-        //stage('SonarCloud Scan') {
-        //    steps {
-        //        script {
-        //            // Perform SonarCloud analysis
-        //            withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
-        //                sh '''
-        //                sonar-scanner \
-        //                -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
-        //                -Dsonar.organization=prayag-sangode \
-        //                -Dsonar.host.url=https://sonarcloud.io \
-        //                -Dsonar.login=$SONAR_TOKEN \
-        //                -Dsonar.java.binaries=target/classes
-        //                '''
-        //            }
-        //        }
-        //    }
-        //}
-
         stage('SonarQube Analysis') {
-                    steps {
-                        script {
-                            docker.image('sonarsource/sonar-scanner-cli:latest')
-                                  .inside('--user root -v $PWD:/usr/src') {
-                                sh """
-                                sonar-scanner \
-                                  -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
-                                  -Dsonar.organization=prayag-sangode \
-                                  -Dsonar.host.url=https://sonarcloud.io \
-                                  -Dsonar.login=**** \
-                                  -Dsonar.sources=.
-
-                                """
-                            }
-                        }
+            steps {
+                script {
+                    docker.image('sonarsource/sonar-scanner-cli:latest')
+                        .inside('--user root -v $PWD:/usr/src') {
+                        sh """
+                            sonar-scanner \
+                            -Dsonar.projectKey=${PROJECT_KEY} \
+                            -Dsonar.organization=${ORGANIZATION} \
+                            -Dsonar.host.url=${SONAR_HOST_URL} \
+                            -Dsonar.login=${SONAR_LOGIN} \
+                            -Dsonar.sources=.
+                        """
                     }
                 }
-        
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -87,11 +67,10 @@ pipeline {
                     // Scan the Docker image for vulnerabilities using Snyk
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
                         sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
-                    // Run Snyk Test on Source Code
-                    sh 'snyk test || true'
-        
-                    // Run Snyk Test on Docker Image
-                    sh 'snyk test --docker $DOCKER_IMAGE:${BUILD_NUMBER} || true'
+                        // Run Snyk Test on Source Code
+                        sh 'snyk test || true'
+                        // Run Snyk Test on Docker Image
+                        sh 'snyk test --docker $DOCKER_IMAGE:${BUILD_NUMBER} || true'
                     }
                 }
             }
@@ -112,14 +91,14 @@ pipeline {
                     // Set up Kubernetes configuration
                     withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
                         sh '''
-                        mkdir -p $HOME/.kube
-                        cp $KUBECONFIG_FILE $HOME/.kube/config
-                        chmod 600 $HOME/.kube/config
+                            mkdir -p $HOME/.kube
+                            cp $KUBECONFIG_FILE $HOME/.kube/config
+                            chmod 600 $HOME/.kube/config
                         '''
                         // Deploy the Docker image to Kubernetes
                         sh '''
-                        kubectl set image deployment/$DOCKER_IMAGE-deployment $DOCKER_IMAGE=$DOCKER_IMAGE:${BUILD_NUMBER}
-                        kubectl rollout restart deployment/$DOCKER_IMAGE-deployment
+                            kubectl set image deployment/$DOCKER_IMAGE-deployment $DOCKER_IMAGE=$DOCKER_IMAGE:${BUILD_NUMBER}
+                            kubectl rollout restart deployment/$DOCKER_IMAGE-deployment
                         '''
                     }
                 }
