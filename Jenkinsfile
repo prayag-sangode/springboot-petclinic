@@ -32,25 +32,25 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--user root -v $PWD:/usr/src'
-                }
-            }
-            steps {
-                sh """
-                sonar-scanner \
-                    -Dsonar.projectKey=${PROJECT_KEY} \
-                    -Dsonar.organization=${ORGANIZATION} \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_LOGIN} \
-                    -Dsonar.sources=src/main/java \
-                    -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
-                """
-            }
-        }
+        //stage('SonarQube Analysis') {
+        //    agent {
+        //        docker {
+        //            image 'sonarsource/sonar-scanner-cli:latest'
+        //            args '--user root -v $PWD:/usr/src'
+        //        }
+        //    }
+        //    steps {
+        //        sh """
+        //        sonar-scanner \
+        //            -Dsonar.projectKey=${PROJECT_KEY} \
+        //            -Dsonar.organization=${ORGANIZATION} \
+        //            -Dsonar.host.url=${SONAR_HOST_URL} \
+        //            -Dsonar.login=${SONAR_LOGIN} \
+        //            -Dsonar.sources=src/main/java \
+        //            -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
+        //        """
+        //    }
+        //}
 
         //stage('Build Docker Image') {
         //    steps {
@@ -77,7 +77,7 @@ pipeline {
         stage('Snyk Security Scan') {
             agent {
                 docker {
-                    image 'snyk/snyk-cli:latest'  // Use the official Snyk Docker image
+                    image 'snyk/snyk-cli'  // Use the official Snyk Docker image
                     args '--user root -v $PWD:/usr/src'  // Mount your workspace directory
                 }
             }
