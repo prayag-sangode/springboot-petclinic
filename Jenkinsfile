@@ -51,8 +51,7 @@ pipeline {
                                     -Dsonar.organization=${ORGANIZATION} \
                                     -Dsonar.host.url=${SONAR_HOST_URL} \
                                     -Dsonar.login=${SONAR_LOGIN} \
-                                    -Dsonar.java.binaries=target/classes \
-                                    -Dsonar.sources=.
+                                    -Dsonar.java.binaries=target/classes
                                 """
                             }
                         }
