@@ -47,11 +47,12 @@ pipeline {
                                   .inside('--user root -v $PWD:/usr/src') {
                                 sh """
                                 sonar-scanner \
-                                    -Dsonar.projectKey=${PROJECT_KEY} \
-                                    -Dsonar.organization=${ORGANIZATION} \
-                                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                                    -Dsonar.login=${SONAR_LOGIN} \
-                                    -Dsonar.java.binaries=target/classes
+                                  -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
+                                  -Dsonar.organization=prayag-sangode \
+                                  -Dsonar.host.url=https://sonarcloud.io \
+                                  -Dsonar.login=**** \
+                                  -Dsonar.sources=.
+
                                 """
                             }
                         }
