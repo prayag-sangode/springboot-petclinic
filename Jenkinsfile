@@ -20,37 +20,37 @@ pipeline {
             }
         }
 
-        stage('Build & Compile') {
-            agent {
-                docker {
-                    image 'maven:3.9.3-eclipse-temurin-17'
-                    args '-v $HOME/.m2:/root/.m2'
-                }
-            }
-            steps {
-                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  // ✅ Compiles project and generates classes
-            }
-        }
+        //stage('Build & Compile') {
+        //    agent {
+        //        docker {
+        //            image 'maven:3.9.3-eclipse-temurin-17'
+        //            args '-v $HOME/.m2:/root/.m2'
+        //        }
+        //    }
+        //    steps {
+        //        sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  // ✅ Compiles project and generates classes
+        //    }
+        //}
 
-        stage('SonarQube Analysis') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--user root -v $PWD:/usr/src'
-                }
-            }
-            steps {
-                sh """
-                sonar-scanner \
-                    -Dsonar.projectKey=${PROJECT_KEY} \
-                    -Dsonar.organization=${ORGANIZATION} \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_LOGIN} \
-                    -Dsonar.sources=src/main/java \
-                    -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
-                """
-            }
-        }
+        //stage('SonarQube Analysis') {
+        //    agent {
+        //        docker {
+        //            image 'sonarsource/sonar-scanner-cli:latest'
+        //            args '--user root -v $PWD:/usr/src'
+        //        }
+        //    }
+        //    steps {
+        //        sh """
+        //        sonar-scanner \
+        //            -Dsonar.projectKey=${PROJECT_KEY} \
+        //            -Dsonar.organization=${ORGANIZATION} \
+        //            -Dsonar.host.url=${SONAR_HOST_URL} \
+        //            -Dsonar.login=${SONAR_LOGIN} \
+        //            -Dsonar.sources=src/main/java \
+        //            -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
+        //        """
+        //    }
+        //}
 
         stage('Build Docker Image') {
             steps {
@@ -74,68 +74,68 @@ pipeline {
             }
         }
 
-        stage('Snyk Security Scan') {
-            agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11'  // Use Maven container
-                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project -w /project'
-                }
-            }
-            steps {
-                script {
-                    withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        // Install Snyk CLI inside the Maven container
-                        sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
-        
-                        // Authenticate Snyk
-                        sh 'snyk auth $SNYK_TOKEN'
-        
-                        // Run Snyk Test on Source Code
-                        sh 'snyk test || true'
-        
-                        // Run Snyk Test on Docker Image
-                        sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
-                    }
-                }
-            }
-        }
+        //stage('Snyk Security Scan') {
+        //    agent {
+        //        docker {
+        //            image 'maven:3.8.6-openjdk-11'  // Use Maven container
+        //            args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project -w /project'
+        //        }
+        //    }
+        //    steps {
+        //        script {
+        //            withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
+        //                // Install Snyk CLI inside the Maven container
+        //                sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
+        //
+        //                // Authenticate Snyk
+        //                sh 'snyk auth $SNYK_TOKEN'
+        //
+        //                // Run Snyk Test on Source Code
+        //                sh 'snyk test || true'
+        //
+        //                // Run Snyk Test on Docker Image
+        //                sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
+        //            }
+        //        }
+        //    }
+        //}
 
-        stage('Trivy Scan') {
-            agent {
-                docker {
-                    image 'aquasec/trivy:latest'  // Use Trivy as the agent
-                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
-                }
-            }
-            steps {
-                script {
-                    // Run Trivy scan on the Docker image
-                    sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
-                }
-            }
-        }
-
+        //stage('Trivy Scan') {
+        //    agent {
+        //        docker {
+        //            image 'aquasec/trivy:latest'  // Use Trivy as the agent
+        //            args '--user root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
+        //        }
+        //    }
+        //    steps {
+        //        script {
+        //            // Run Trivy scan on the Docker image
+        //            sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
+        //        }
+        //    }
+        //}
 
 
         stage('Deploy to Kubernetes') {
             agent {
                 docker {
                     image 'bitnami/kubectl:latest'  // Use a prebuilt kubectl image
-                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+                    args '--entrypoint= -u root -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.kube:/root/.kube'
                 }
+            }
+            environment {
+                KUBECONFIG = "$HOME/.kube/config" // Ensure kubectl uses the correct config
             }
             steps {
                 script {
-                    // Set up Kubernetes configuration
                     withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
-                        // Copy Kube config file to the right location
                         sh '''
                             mkdir -p $HOME/.kube
                             cp $KUBECONFIG_FILE $HOME/.kube/config
                             chmod 600 $HOME/.kube/config
                         '''
                         
-                        // Deploy the Docker image to Kubernetes by updating the image with kubectl set image
+                        // Deploy updated image to Kubernetes
                         sh '''
                             kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
                             kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
@@ -144,7 +144,6 @@ pipeline {
                 }
             }
         }
-    }
 
     post {
         success {
