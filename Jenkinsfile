@@ -20,27 +20,40 @@ pipeline {
             }
         }
 
-        stage('Build & SonarQube Analysis') {
-            steps {
-                script {
-                    // Run SonarQube scan using sonar-scanner-cli Docker image
-                    docker.image('sonarsource/sonar-scanner-cli').inside {
-                        sh """
-                        # Ensure cache directory has the correct permissions
-                        mkdir -p /opt/sonar-scanner/.sonar/cache
-                        chmod -R 777 /opt/sonar-scanner/.sonar
-
-                        sonar-scanner \
-                            -Dsonar.projectKey=${env.PROJECT_KEY} \
-                            -Dsonar.organization=${env.ORGANIZATION} \
-                            -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                            -Dsonar.login=${env.SONAR_LOGIN} \
-                            -Dsonar.sources=.
-                        """
+    stages {
+            stage('Build & Compile') {
+                agent {
+                    docker {
+                        image 'maven:3.9.3-eclipse-temurin-17'
+                        args '-v $HOME/.m2:/root/.m2'
                     }
+                }
+                steps {
+                    sh 'mvn clean verify'  // ✅ Compiles project and generates classes
+                }
+            }
+    
+            stage('SonarQube Analysis') {
+                agent {
+                    docker {
+                        image 'sonarsource/sonar-scanner-cli:latest'
+                        args '--user root -v $PWD:/usr/src'
+                    }
+                }
+                steps {
+                    sh """
+                    sonar-scanner \
+                        -Dsonar.projectKey=${PROJECT_KEY} \
+                        -Dsonar.organization=${ORGANIZATION} \
+                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.login=${SONAR_LOGIN} \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
+                    """
                 }
             }
         }
+    }
 
         stage('Build Docker Image') {
             steps {
