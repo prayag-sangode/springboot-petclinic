@@ -7,7 +7,6 @@ pipeline {
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
-        SONAR_CRED = credentials('sonarcloud-id') // Sonar credentials
         SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
@@ -31,9 +30,8 @@ pipeline {
                           -Dsonar.projectKey=$PROJECT_KEY \
                           -Dsonar.organization=$ORGANIZATION \
                           -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=${SONAR_CRED} \
+                          -Dsonar.login=${SONAR_LOGIN} \
                           -Dsonar.sources=. \
-                          -Dsonar.java.binaries=target/classes
                         """
                     }
                 }
