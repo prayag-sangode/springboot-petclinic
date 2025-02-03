@@ -52,32 +52,32 @@ pipeline {
         //    }
         //}
 
-        //stage('Build Docker Image') {
-        //    steps {
-        //        script {
-        //            // Build the Docker image from Dockerfile
-        //            docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
-        //        }
-        //    }
-        //}
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image from Dockerfile
+                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
+                }
+            }
+        }
 
-        //stage('Push Docker Image to DockerHub') {
-        //    steps {
-        //        script {
-        //            // Log in to Docker Hub
-        //            withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        //                sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-        //                // Push the Docker image
-        //                sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
-        //            }
-        //        }
-        //    }
-        //}
+        stage('Push Docker Image to DockerHub') {
+            steps {
+                script {
+                    // Log in to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        // Push the Docker image
+                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
 
         stage('Snyk Security Scan') {
             agent {
                 docker {
-                    image 'snyk/snyk-cli'  // Use the official Snyk Docker image
+                    image 'snyk/snyk-cli:docker'  // Use the official Snyk Docker image
                     args '--user root -v $PWD:/usr/src'  // Mount your workspace directory
                 }
             }
