@@ -11,7 +11,7 @@ pipeline {
         SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
-        PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
+        PATH = "${PATH}:${SONAR_SCANNER_HOME}/bin"
     }
 
     stages {
@@ -57,7 +57,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image from Dockerfile
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
+                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}", "--no-cache") // Ensures a fresh build
                 }
             }
         }
@@ -65,10 +65,8 @@ pipeline {
         stage('Push Docker Image to DockerHub') {
             steps {
                 script {
-                    // Log in to Docker Hub
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        // Push the Docker image
                         sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     }
                 }
@@ -85,16 +83,9 @@ pipeline {
         //    steps {
         //        script {
         //            withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-        //                // Install Snyk CLI inside the Maven container
         //                sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
-        //
-        //                // Authenticate Snyk
         //                sh 'snyk auth $SNYK_TOKEN'
-        //
-        //                // Run Snyk Test on Source Code
         //                sh 'snyk test || true'
-        //
-        //                // Run Snyk Test on Docker Image
         //                sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
         //            }
         //        }
@@ -110,7 +101,6 @@ pipeline {
         //    }
         //    steps {
         //        script {
-        //            // Run Trivy scan on the Docker image
         //            sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
         //        }
         //    }
@@ -129,23 +119,20 @@ pipeline {
             steps {
                 script {
                     withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
-                        // Create the .kube directory inside the container's /root folder
                         sh '''
                             mkdir -p /root/.kube
                             cp $KUBECONFIG_FILE /root/.kube/config
                             chmod 600 /root/.kube/config
                         '''
-                        
-                        // Deploy updated image to Kubernetes
                         sh '''
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKER_IMAGE}:${BUILD_NUMBER}
                             kubectl rollout restart deployment/${DEPLOYMENT_NAME}
                         '''
                     }
                 }
             }
         }
-
+    }
 
     post {
         success {
@@ -154,6 +141,5 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-      }
-   }
+    }
 }
