@@ -40,26 +40,23 @@ pipeline {
         //    }
         //}
 
-    
         stage('SonarQube Analysis') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--user root -v $PWD:/usr/src'
+                    steps {
+                        script {
+                            docker.image('sonarsource/sonar-scanner-cli:latest')
+                                  .inside('--user root -v $PWD:/usr/src') {
+                                sh """
+                                sonar-scanner \
+                                    -Dsonar.projectKey=${PROJECT_KEY} \
+                                    -Dsonar.organization=${ORGANIZATION} \
+                                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                                    -Dsonar.login=${SONAR_LOGIN} \
+                                    -Dsonar.sources=.
+                                """
+                            }
+                        }
+                    }
                 }
-            }
-            steps {
-                sh """
-                sonar-scanner \
-                    -Dsonar.projectKey=${PROJECT_KEY} \
-                    -Dsonar.organization=${ORGANIZATION} \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_LOGIN} \
-                    -Dsonar.sources=.
-                """
-             }
-          }
-       }
         
         stage('Build Docker Image') {
             steps {
