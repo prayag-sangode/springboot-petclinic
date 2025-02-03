@@ -77,25 +77,26 @@ pipeline {
         stage('Snyk Security Scan') {
             agent {
                 docker {
-                    image 'snyk/snyk:alpine'  
-                    args '--user root -v $PWD:/usr/src'  
+                    image 'maven:3.8.6-openjdk-11'  // Use Maven container
+                    args '--user root -v $PWD:/project -w /project'
                 }
             }
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        // Authenticate with Snyk using the token
+                        // Install Snyk inside Maven container
+                        sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
+        
+                        // Authenticate Snyk
                         sh 'snyk auth $SNYK_TOKEN'
         
                         // Run Snyk Test on Source Code
                         sh 'snyk test || true'
-        
-                        // Run Snyk Test on Docker Image
-                        //sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
                     }
                 }
             }
         }
+
 
 
         stage('Trivy Scan') {
