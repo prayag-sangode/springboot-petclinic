@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_CREDENTIALS = credentials('dockerhub-id')   // DockerHub Credentials
-        KUBECONFIG_CRED = credentials('kubeconfig-id')     // Kubernetes Kubeconfig
-        SONAR_CRED = credentials('sonarcloud-id')          // SonarCloud Token
-        SNYK_CRED = credentials('snyk-id')                 // Snyk Token
+        DOCKER_CREDENTIALS = credentials('dockerhub-id')   
+        KUBECONFIG_CRED = credentials('kubeconfig-id')     
+        SNYK_CRED = credentials('snyk-id')                 
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
-        SONAR_LOGIN = credentials('SONAR_TOKEN')
+        SONAR_CRED = credentials('sonarcloud-id') 
+        SONAR_LOGIN = SONAR_CRED
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
