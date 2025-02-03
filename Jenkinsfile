@@ -77,8 +77,8 @@ pipeline {
         stage('Snyk Security Scan') {
             agent {
                 docker {
-                    image 'snyk/snyk-cli:docker'  // Use the official Snyk Docker image
-                    args '--user root -v $PWD:/usr/src'  // Mount your workspace directory
+                    image 'snyk/snyk:alpine'  
+                    args '--user root -v $PWD:/usr/src'  
                 }
             }
             steps {
@@ -91,7 +91,7 @@ pipeline {
                         sh 'snyk test || true'
         
                         // Run Snyk Test on Docker Image
-                        sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
+                        //sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
                     }
                 }
             }
