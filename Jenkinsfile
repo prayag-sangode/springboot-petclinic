@@ -7,8 +7,8 @@ pipeline {
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
-        SONAR_CRED = credentials('sonarcloud-id') 
-        SONAR_LOGIN = credentials('sonarcloud-id')
+        SONAR_CRED = credentials('sonarcloud-id') // Sonar credentials
+        SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
@@ -28,10 +28,10 @@ pipeline {
                         .inside('--user root -v $PWD:/usr/src') {
                         sh """
                         sonar-scanner \
-                          -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
-                          -Dsonar.organization=prayag-sangode \
-                          -Dsonar.host.url=https://sonarcloud.io \
-                          -Dsonar.login=**** \
+                          -Dsonar.projectKey=$PROJECT_KEY \
+                          -Dsonar.organization=$ORGANIZATION \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=${SONAR_CRED} \
                           -Dsonar.sources=. \
                           -Dsonar.java.binaries=target/classes
                         """
@@ -44,7 +44,7 @@ pipeline {
             steps {
                 script {
                     // Build the Docker image from Dockerfile
-                    docker.build("$DOCKER_IMAGE:${BUILD_NUMBER}") // Docker image name
+                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
                 }
             }
         }
@@ -56,7 +56,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
                         // Push the Docker image
-                        sh "docker push $DOCKER_IMAGE:${BUILD_NUMBER}"
+                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     }
                 }
             }
@@ -71,7 +71,7 @@ pipeline {
                         // Run Snyk Test on Source Code
                         sh 'snyk test || true'
                         // Run Snyk Test on Docker Image
-                        sh 'snyk test --docker $DOCKER_IMAGE:${BUILD_NUMBER} || true'
+                        sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
                     }
                 }
             }
@@ -81,7 +81,7 @@ pipeline {
             steps {
                 script {
                     // Scan the Docker image for vulnerabilities using Trivy
-                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy image $DOCKER_IMAGE:${BUILD_NUMBER}'  // Run Trivy scan
+                    sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project aquasec/trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Run Trivy scan
                 }
             }
         }
@@ -98,8 +98,8 @@ pipeline {
                         '''
                         // Deploy the Docker image to Kubernetes
                         sh '''
-                            kubectl set image deployment/$DOCKER_IMAGE-deployment $DOCKER_IMAGE=$DOCKER_IMAGE:${BUILD_NUMBER}
-                            kubectl rollout restart deployment/$DOCKER_IMAGE-deployment
+                            kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
                         '''
                     }
                 }
