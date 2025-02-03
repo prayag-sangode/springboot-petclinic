@@ -38,27 +38,26 @@ pipeline {
 
     
         stage('SonarCloud Scan') {
-            steps {
-                script {
-                    // Perform SonarCloud analysis using Sonar Scanner Docker image
-                    withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                        docker run --rm \
-                        -e SONAR_HOST_URL="https://sonarcloud.io" \
-                        -e SONAR_LOGIN="$SONAR_TOKEN" \
-                        -v $PWD:/usr/src \
-                        sonarsource/sonar-scanner-cli:latest \
-                        sonar-scanner \
-                        -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
-                        -Dsonar.organization=prayag-sangode \
-                        -Dsonar.sources=. \
-                        -Dsonar.java.binaries=target/classes
-                        '''
+                    steps {
+                        script {
+                            // Perform SonarCloud analysis using Sonar Scanner Docker image
+                            withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
+                                sh '''
+                                docker run --rm \
+                                -e SONAR_HOST_URL="https://sonarcloud.io" \
+                                -e SONAR_LOGIN="$SONAR_TOKEN" \
+                                -v $PWD:/usr/src \
+                                sonarsource/sonar-scanner-cli:latest \
+                                sonar-scanner \
+                                -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
+                                -Dsonar.organization=prayag-sangode \
+                                -Dsonar.sources=. \
+                                -Dsonar.java.binaries=target/classes
+                                '''
+                            }
+                        }
                     }
                 }
-            }
-          }
-
         
         stage('Build Docker Image') {
             steps {
