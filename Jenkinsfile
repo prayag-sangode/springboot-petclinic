@@ -32,25 +32,25 @@ pipeline {
             }
         }
 
-        //stage('SonarQube Analysis') {
-        //    agent {
-        //        docker {
-        //            image 'sonarsource/sonar-scanner-cli:latest'
-        //            args '--user root -v $PWD:/usr/src'
-        //        }
-        //    }
-        //    steps {
-        //        sh """
-        //        sonar-scanner \
-        //            -Dsonar.projectKey=${PROJECT_KEY} \
-        //            -Dsonar.organization=${ORGANIZATION} \
-        //            -Dsonar.host.url=${SONAR_HOST_URL} \
-        //            -Dsonar.login=${SONAR_LOGIN} \
-        //            -Dsonar.sources=src/main/java \
-        //            -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
-        //        """
-        //    }
-        //}
+        stage('SonarQube Analysis') {
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli:latest'
+                    args '--user root -v $PWD:/usr/src'
+                }
+            }
+            steps {
+                sh """
+                sonar-scanner \
+                    -Dsonar.projectKey=${PROJECT_KEY} \
+                    -Dsonar.organization=${ORGANIZATION} \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=${SONAR_LOGIN} \
+                    -Dsonar.sources=src/main/java \
+                    -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
+                """
+            }
+        }
 
         stage('Build Docker Image') {
             steps {
@@ -117,25 +117,33 @@ pipeline {
 
 
 
-        //stage('Deploy to Kubernetes') {
-        //    steps {
-        //        script {
-        //             // Set up Kubernetes configuration
-        //            withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
-        //                sh '''
-        //                    mkdir -p $HOME/.kube
-        //                    cp $KUBECONFIG_FILE $HOME/.kube/config
-        //                    chmod 600 $HOME/.kube/config
-        //                '''
-        //                // Deploy the Docker image to Kubernetes
-        //                sh '''
-        //                    kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
-        //                    kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
-        //                '''
-        //            }
-        //        }
-        //    }
-        //}
+        stage('Deploy to Kubernetes') {
+            agent {
+                docker {
+                    image 'bitnami/kubectl:latest'  // Use a prebuilt kubectl image
+                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
+            steps {
+                script {
+                    // Set up Kubernetes configuration
+                    withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
+                        // Copy Kube config file to the right location
+                        sh '''
+                            mkdir -p $HOME/.kube
+                            cp $KUBECONFIG_FILE $HOME/.kube/config
+                            chmod 600 $HOME/.kube/config
+                        '''
+                        
+                        // Deploy the Docker image to Kubernetes by updating the image with kubectl set image
+                        sh '''
+                            kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
+                            kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
