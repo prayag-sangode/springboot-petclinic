@@ -78,13 +78,13 @@ pipeline {
             agent {
                 docker {
                     image 'maven:3.8.6-openjdk-11'  // Use Maven container
-                    args '--user root -v $PWD:/project -w /project'
+                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project -w /project'
                 }
             }
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        // Install Snyk inside Maven container
+                        // Install Snyk CLI inside the Maven container
                         sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
         
                         // Authenticate Snyk
@@ -92,10 +92,14 @@ pipeline {
         
                         // Run Snyk Test on Source Code
                         sh 'snyk test || true'
+        
+                        // Run Snyk Test on Docker Image
+                        sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
                     }
                 }
             }
         }
+
 
 
 
