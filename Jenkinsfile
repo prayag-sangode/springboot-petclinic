@@ -91,7 +91,7 @@ pipeline {
                         // Authenticate Snyk
                         sh 'snyk auth $SNYK_TOKEN'
         
-                       // Run Snyk Test on Source Code
+                        // Run Snyk Test on Source Code
                         sh 'snyk test || true'
         
                         // Run Snyk Test on Docker Image
@@ -115,6 +115,7 @@ pipeline {
                 }
             }
         }
+    }
 
     post {
         success {
@@ -123,6 +124,5 @@ pipeline {
         failure {
             echo 'Pipeline failed!'
         }
-      }
-   }
+    }
 }
