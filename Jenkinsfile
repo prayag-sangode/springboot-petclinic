@@ -100,20 +100,22 @@ pipeline {
             }
         }
 
-        //stage('Trivy Scan') {
-        //    agent {
-        //        docker {
-        //            image 'aquasec/trivy:latest'  // Use the official Trivy Docker image
-        //            args '--user root -v $PWD:/project -v /var/run/docker.sock:/var/run/docker.sock'  // Mount necessary volumes
-        //        }
-        //    }
-        //    steps {
-        //        script {
-        //            // Run Trivy scan on Docker image
-        //            sh 'trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Scan the Docker image for vulnerabilities
-        //        }
-        //    }
-        //}
+        stage('Trivy Scan') {
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'  // Use Trivy as the agent
+                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
+            steps {
+                script {
+                    // Run Trivy scan on the Docker image
+                    sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
+                   //--exit-code 0: Ensures Trivy exits with code 0 (success), regardless of vulnerabilities found. Useful for continuing pipeline even with vulnerabilities. Won't fail job unless explicitly chosen based on severity. --exit-code 1: Causes job to fail if any vulnerabilities are found during scan. Blocks pipeline if vulnerabilities (above a threshold) are found. --exit-code 2: Exits with code 2 only if critical vulnerabilities are found. Pipeline can continue if only low/medium severity issues are detected.
+
+                }
+            }
+        }
 
 
         stage('Deploy to Kubernetes') {
