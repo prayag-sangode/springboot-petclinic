@@ -57,7 +57,7 @@
     <dependency>
     <groupId>jakarta.validation</groupId>
     <artifactId>jakarta.validation-api</artifactId>
-    <version>3.0.3</version> <!-- Update to a newer version -->
+    <version>3.1.1</version> <!-- Update to a newer version -->
     </dependency>
 
     <!-- Spring and Spring Boot dependencies -->
