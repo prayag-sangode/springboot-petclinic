@@ -137,6 +137,7 @@ pipeline {
                         
                         // Deploy updated image to Kubernetes
                         sh '''
+                            cat .kube/config
                             kubectl set image deployment/${DEPLOYMENT_NAME} ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
                             kubectl rollout restart deployment/${DEPLOYMENT_NAME}
                         '''
