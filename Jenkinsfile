@@ -124,20 +124,20 @@ pipeline {
                 }
             }
             environment {
-                KUBECONFIG = "$HOME/.kube/config" // Ensure kubectl uses the correct config
+                KUBECONFIG = "/root/.kube/config"  // Ensure kubectl uses the correct config
             }
             steps {
                 script {
                     withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
+                        // Create the .kube directory inside the container's /root folder
                         sh '''
-                            mkdir -p $HOME/.kube
-                            cp $KUBECONFIG_FILE $HOME/.kube/config
-                            chmod 600 $HOME/.kube/config
+                            mkdir -p /root/.kube
+                            cp $KUBECONFIG_FILE /root/.kube/config
+                            chmod 600 /root/.kube/config
                         '''
                         
                         // Deploy updated image to Kubernetes
                         sh '''
-                            cat .kube/config
                             kubectl set image deployment/${DEPLOYMENT_NAME} ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
                             kubectl rollout restart deployment/${DEPLOYMENT_NAME}
                         '''
@@ -145,7 +145,7 @@ pipeline {
                 }
             }
         }
-    }
+
 
     post {
         success {
