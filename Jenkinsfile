@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_CREDENTIALS = credentials('dockerhub-id')   
-        KUBECONFIG_CRED = credentials('kubeconfig-id')                    
+        KUBECONFIG_FILE = credentials('kubeconfig-id')                    
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         DEPLOYMENT_NAME = "springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
