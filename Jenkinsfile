@@ -121,25 +121,25 @@ pipeline {
         }
 
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    // Set up Kubernetes configuration
-                    withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
-                        sh '''
-                            mkdir -p $HOME/.kube
-                            cp $KUBECONFIG_FILE $HOME/.kube/config
-                            chmod 600 $HOME/.kube/config
-                        '''
-                        // Deploy the Docker image to Kubernetes
-                        sh '''
-                            kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
-                            kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
-                        '''
-                    }
-                }
-            }
-        }
+        //stage('Deploy to Kubernetes') {
+        //    steps {
+        //        script {
+        //             // Set up Kubernetes configuration
+        //            withCredentials([file(credentialsId: 'kubeconfig-id', variable: 'KUBECONFIG_FILE')]) {
+        //                sh '''
+        //                    mkdir -p $HOME/.kube
+        //                    cp $KUBECONFIG_FILE $HOME/.kube/config
+        //                    chmod 600 $HOME/.kube/config
+        //                '''
+        //                // Deploy the Docker image to Kubernetes
+        //                sh '''
+        //                    kubectl set image deployment/${DOCKER_IMAGE}-deployment ${DOCKER_IMAGE}=${DOCKER_IMAGE}:${BUILD_NUMBER}
+        //                    kubectl rollout restart deployment/${DOCKER_IMAGE}-deployment
+        //                '''
+        //            }
+        //        }
+        //    }
+        //}
     }
 
     post {
