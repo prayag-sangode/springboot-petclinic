@@ -100,23 +100,20 @@ pipeline {
             }
         }
 
-
-
-
-        stage('Trivy Scan') {
-            agent {
-                docker {
-                    image 'aquasec/trivy:latest'  // Use the official Trivy Docker image
-                    args '--user root -v $PWD:/project -v /var/run/docker.sock:/var/run/docker.sock'  // Mount necessary volumes
-                }
-            }
-            steps {
-                script {
-                    // Run Trivy scan on Docker image
-                    sh 'trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Scan the Docker image for vulnerabilities
-                }
-            }
-        }
+        //stage('Trivy Scan') {
+        //    agent {
+        //        docker {
+        //            image 'aquasec/trivy:latest'  // Use the official Trivy Docker image
+        //            args '--user root -v $PWD:/project -v /var/run/docker.sock:/var/run/docker.sock'  // Mount necessary volumes
+        //        }
+        //    }
+        //    steps {
+        //        script {
+        //            // Run Trivy scan on Docker image
+        //            sh 'trivy image ${DOCKER_IMAGE}:${BUILD_NUMBER}'  // Scan the Docker image for vulnerabilities
+        //        }
+        //    }
+        //}
 
 
         stage('Deploy to Kubernetes') {
