@@ -2,12 +2,16 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_CREDENTIALS = credentials('dockerhub-id')  // DockerHub Credentials
-        KUBECONFIG_CRED = credentials('kubeconfig-id')    // Kubernetes Kubeconfig
+        DOCKER_CREDENTIALS = credentials('dockerhub-id')   // DockerHub Credentials
+        KUBECONFIG_CRED = credentials('kubeconfig-id')     // Kubernetes Kubeconfig
         SONAR_CRED = credentials('sonarcloud-id')          // SonarCloud Token
         SNYK_CRED = credentials('snyk-id')                 // Snyk Token
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
+        SONAR_HOST_URL = 'https://sonarcloud.io'
+        SONAR_LOGIN = credentials('SONAR_TOKEN')
+        PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
+        ORGANIZATION = 'prayag-sangode'
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
     }
 
@@ -37,27 +41,25 @@ pipeline {
         //}
 
     
-        stage('SonarCloud Scan') {
-                    steps {
-                        script {
-                            // Perform SonarCloud analysis using Sonar Scanner Docker image
-                            withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
-                                sh '''
-                                docker run --rm \
-                                -e SONAR_HOST_URL="https://sonarcloud.io" \
-                                -e SONAR_LOGIN="$SONAR_TOKEN" \
-                                -v $PWD:/usr/src \
-                                sonarsource/sonar-scanner-cli:latest \
-                                sonar-scanner \
-                                -Dsonar.projectKey=prayag-sangode_springboot-petclinic \
-                                -Dsonar.organization=prayag-sangode \
-                                -Dsonar.sources=. \
-                                -Dsonar.java.binaries=target/classes
-                                '''
-                            }
-                        }
-                    }
+        stage('SonarQube Analysis') {
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli:latest'
+                    args '--user root -v $PWD:/usr/src'
                 }
+            }
+            steps {
+                sh """
+                sonar-scanner \
+                    -Dsonar.projectKey=${PROJECT_KEY} \
+                    -Dsonar.organization=${ORGANIZATION} \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=${SONAR_LOGIN} \
+                    -Dsonar.sources=.
+                """
+             }
+          }
+       }
         
         stage('Build Docker Image') {
             steps {
