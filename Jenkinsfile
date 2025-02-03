@@ -135,16 +135,16 @@ pipeline {
                             chmod 600 /root/.kube/config
                         '''
         
-                        # Debug Kubernetes context
+                        // Debug Kubernetes context
                         sh 'kubectl config view'
                         sh 'kubectl cluster-info'
                         sh 'kubectl get nodes'
                         sh 'kubectl get deployments -A'
         
-                        # Ensure deployment exists before updating image
+                        // Ensure deployment exists before updating image
                         sh 'kubectl get deployment ${DEPLOYMENT_NAME} -n dev || echo "Deployment not found!"'
         
-                        # Update image & restart deployment
+                        // Update image & restart deployment
                         sh '''
                             kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKER_IMAGE}:${BUILD_NUMBER} -n dev
                             kubectl rollout restart deployment/${DEPLOYMENT_NAME} -n dev
@@ -153,6 +153,7 @@ pipeline {
                 }
             }
         }
+
 
 
     post {
