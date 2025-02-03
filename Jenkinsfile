@@ -111,7 +111,10 @@ pipeline {
                 script {
                     // Run Trivy scan on the Docker image
                     sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
-                   //--exit-code 0: Ensures Trivy exits with code 0 (success), regardless of vulnerabilities found. Useful for continuing pipeline even with vulnerabilities. Won't fail job unless explicitly chosen based on severity. --exit-code 1: Causes job to fail if any vulnerabilities are found during scan. Blocks pipeline if vulnerabilities (above a threshold) are found. --exit-code 2: Exits with code 2 only if critical vulnerabilities are found. Pipeline can continue if only low/medium severity issues are detected.
+
+                   //--exit-code 0: Ensures Trivy exits with code 0 (success), regardless of vulnerabilities found. Useful for continuing pipeline even with vulnerabilities. Won't fail job unless explicitly chosen based on severity. 
+                   //--exit-code 1: Causes job to fail if any vulnerabilities are found during scan. Blocks pipeline if vulnerabilities (above a threshold) are found. 
+                   //--exit-code 2: Exits with code 2 only if critical vulnerabilities are found. Pipeline can continue if only low/medium severity issues are detected.
 
                 }
             }
