@@ -29,7 +29,7 @@ pipeline {
                 }
             }
             steps {
-                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  // ✅ Compiles project and generates classes
+                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  //  Compiles project and generates classes
             }
         }
 
@@ -48,7 +48,7 @@ pipeline {
                     -Dsonar.host.url=${SONAR_HOST_URL} \
                     -Dsonar.login=${SONAR_LOGIN} \
                     -Dsonar.sources=src/main/java \
-                    -Dsonar.java.binaries=target/classes  # ✅ Pass compiled classes path
+                    -Dsonar.java.binaries=target/classes  #  Pass compiled classes path
                 """
             }
         }
