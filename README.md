@@ -20,7 +20,7 @@ sudo apt-get install postgresql-client -y
 sudo apt install docker-compose -y
 ```
 
-## 1. Build and Run the Application locally
+## 1. Build and Run the Application locally (VM)
 
 ### Build the Application
 
@@ -116,7 +116,7 @@ spring.datasource.username=your_username
 spring.datasource.password=your_password
 ```
 
-## 2. Running with Docker Compose
+## 2. Running with Docker Compose (Docker / Docker Compose)
 To run the application using Docker Compose, use the following command:
 
 ```sh
@@ -159,7 +159,7 @@ You can build a container image (if you have a docker daemon) using the Spring B
 ./mvnw spring-boot:build-image
 ```
 
-## 3. Running with k8s
+## 3. Running with k8s (Kuberentes)
 
 # Spring Boot PetClinic on Kubernetes
 
