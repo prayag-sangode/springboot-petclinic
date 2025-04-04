@@ -8,7 +8,7 @@ pipeline {
         DEPLOYMENT_NAME = "springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
-        SONAR_LOGIN = credentials('sonarcloud-id')
+        SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
@@ -17,27 +17,27 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm  // Pull the source code from the repository
             }
         }
 
         stage('Build & Compile') {
             agent {
-                dockerContainer {
+                docker {
                     image 'maven:3.9.3-eclipse-temurin-17'
-                    args '-v $HOME/.m2:/root/.m2'
+                    reuseNode true
                 }
             }
             steps {
-                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'
+                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  // Compiles project and generates classes
             }
         }
 
         stage('SonarQube Analysis') {
             agent {
-                dockerContainer {
+                docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--user root -v $PWD:/usr/src'
+                    reuseNode true
                 }
             }
             steps {
@@ -56,7 +56,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
+                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
                 }
             }
         }
@@ -73,34 +73,22 @@ pipeline {
         }
 
         stage('Snyk Security Scan') {
-            agent {
-                dockerContainer {
-                    image 'maven:3.8.6-openjdk-11'
-                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project -w /project'
-                }
-            }
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
                         sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
                         sh 'snyk auth $SNYK_TOKEN'
                         sh 'snyk test || true'
-                        sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
+                        sh "snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
                     }
                 }
             }
         }
 
         stage('Trivy Scan') {
-            agent {
-                dockerContainer {
-                    image 'aquasec/trivy:latest'
-                    args '--user root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
-                }
-            }
             steps {
                 script {
-                    sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                 }
             }
         }
