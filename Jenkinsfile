@@ -27,6 +27,7 @@ pipeline {
             }
         }
 
+
         stage('SonarQube Analysis') {
             steps {
                 sh """
@@ -36,7 +37,7 @@ pipeline {
                     -Dsonar.organization=${ORGANIZATION} \
                     -Dsonar.host.url=${SONAR_HOST_URL} \
                     -Dsonar.login=${SONAR_LOGIN} \
-                    -Dsonar.sources=src/main/java \
+                    -Dsonar.sources=. \
                     -Dsonar.java.binaries=target/classes
                 """
             }
