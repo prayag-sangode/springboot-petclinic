@@ -6,9 +6,10 @@ pipeline {
         KUBECONFIG_FILE = credentials('kubeconfig-id')                    
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         DEPLOYMENT_NAME = "springboot-petclinic"
+        IMAGE_PULL_SECRET = "dockerhub-secret"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
-        SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
+        SONAR_LOGIN = credentials('sonarcloud-id')
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
@@ -93,14 +94,25 @@ pipeline {
             }
         }
 
-       
         stage('Deploy to Kubernetes') {
             steps {
                 script {
                     withKubeConfig([credentialsId: 'kubeconfig-id', serverUrl: 'https://127.0.0.1:16443']) {
+                        // Create Kubernetes secret for image pull
+                        sh '''
+                            kubectl delete secret ${IMAGE_PULL_SECRET} --ignore-not-found -n default
+                            kubectl create secret docker-registry ${IMAGE_PULL_SECRET} \
+                                --docker-server=https://index.docker.io/v1/ \
+                                --docker-username=${DOCKER_USER} \
+                                --docker-password=${DOCKER_PASS} \
+                                --docker-email=your-email@example.com
+                        '''
+                        
+                        // Update deployment YAML with correct image and secret
                         sh '''
                             sed -i "s|{{IMAGE}}|${DOCKER_IMAGE}:${BUILD_NUMBER}|g" k8s/deployment.yaml
                             sed -i "s|{{APP_NAME}}|${DEPLOYMENT_NAME}|g" k8s/deployment.yaml
+                            sed -i "s|{{IMAGE_PULL_SECRET}}|${IMAGE_PULL_SECRET}|g" k8s/deployment.yaml
                             kubectl apply -f k8s/deployment.yaml
                         '''
                     }
