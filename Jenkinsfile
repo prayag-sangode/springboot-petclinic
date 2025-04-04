@@ -31,16 +31,31 @@ pipeline {
             steps {
                 sh 'whoami'
                 sh 'pwd'
-                sh 'ls'
                 sh 'ls -l'
         
-                // Try only changing permissions instead of ownership
+                // Fix: Change permissions only (avoid ownership issues)
                 sh 'chmod -R 777 /var/lib/jenkins/sonar-cache'
         
-                sh 'docker run --rm -v $PWD:/app -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar -w /app --user 115:122 sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.projectKey=****-sangode_springboot-petclinic -Dsonar.organization=****-sangode -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=**** -Dsonar.sources=. -Dsonar.java.binaries=target/classes'
+                // Fix: Securely reference SONAR_LOGIN using withCredentials
+                withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        docker run --rm \
+                            -v $PWD:/app \
+                            -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar \
+                            -w /app --user 115:122 \
+                            sonarsource/sonar-scanner-cli:latest sonar-scanner \
+                            -Dsonar.projectKey=$PROJECT_KEY \
+                            -Dsonar.organization=$ORGANIZATION \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.token=$SONAR_TOKEN \
+                            -Dsonar.sources=. \
+                            -Dsonar.java.binaries=target/classes
+                    '''
+                }
             }
         }
-
+    }
+}
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
