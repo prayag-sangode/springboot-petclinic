@@ -29,12 +29,20 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                sh 'chmod -R 777 /var/lib/jenkins/sonar-cache'
+                sh 'whoami'
+                sh 'pwd'
+                sh 'ls -l'
+        
+                // Fix: Ensure Sonar cache directory has correct permissions
+                sh 'mkdir -p /var/lib/jenkins/sonar-cache /var/lib/jenkins/sonar-tmp'
+                sh 'chmod -R 777 /var/lib/jenkins/sonar-cache /var/lib/jenkins/sonar-tmp'
+        
                 withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
                     sh '''
                         docker run --rm \
                             -v $PWD:/app \
                             -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar \
+                            -v /var/lib/jenkins/sonar-tmp:/tmp \  # Fix: Mount writable /tmp
                             -w /app --user 115:122 \
                             sonarsource/sonar-scanner-cli:latest sonar-scanner \
                             -Dsonar.projectKey=$PROJECT_KEY \
@@ -47,6 +55,7 @@ pipeline {
                 }
             }
         }
+
 
         stage('Build Docker Image') {
             steps {
