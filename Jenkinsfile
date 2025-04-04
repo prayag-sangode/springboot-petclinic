@@ -27,16 +27,17 @@ pipeline {
                 script {
                     sh 'chmod -R a+rX .' // Ensure readable files
                     sh """
-                    docker run --rm -u $(id -u):$(id -g) -v $PWD:/app -w /app sonarsource/sonar-scanner-cli:latest \
+                    docker run --rm -u $(id -u):$(id -g) -v "\$PWD:/app" -w /app sonarsource/sonar-scanner-cli:latest \
                         sonar-scanner \
                         -Dsonar.projectKey=${PROJECT_KEY} \
                         -Dsonar.organization=${ORGANIZATION} \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.token=${SONAR_LOGIN} \
+                        -Dsonar.token=\$SONAR_LOGIN \
                         -Dsonar.sources=. \
                         -Dsonar.java.binaries=target/classes \
                         -Dsonar.scm.disabled=true
                     """
+
                 }
             }
         }
