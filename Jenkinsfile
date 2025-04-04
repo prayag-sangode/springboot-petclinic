@@ -98,28 +98,31 @@ pipeline {
             steps {
                 script {
                     withKubeConfig([credentialsId: 'kubeconfig-id', serverUrl: 'https://127.0.0.1:16443']) {
-                        // Create Kubernetes secret for image pull
-                        sh '''
-                            kubectl delete secret ${IMAGE_PULL_SECRET} --ignore-not-found -n default
-                            kubectl create secret docker-registry ${IMAGE_PULL_SECRET} \
-                                --docker-server=https://index.docker.io/v1/ \
-                                --docker-username=${DOCKER_USER} \
-                                --docker-password=${DOCKER_PASS} \
-                                --docker-email=your-email@example.com
-                        '''
-                        
-                        // Update deployment YAML with correct image and secret
-                        sh '''
-                            sed -i "s|{{IMAGE}}|${DOCKER_IMAGE}:${BUILD_NUMBER}|g" k8s/deployment.yaml
-                            sed -i "s|{{APP_NAME}}|${DEPLOYMENT_NAME}|g" k8s/deployment.yaml
-                            sed -i "s|{{IMAGE_PULL_SECRET}}|${IMAGE_PULL_SECRET}|g" k8s/deployment.yaml
-                            kubectl apply -f k8s/deployment.yaml
-                        '''
+                        withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            
+                            // Create Kubernetes secret for image pull
+                            sh '''
+                                kubectl delete secret ${IMAGE_PULL_SECRET} --ignore-not-found -n default
+                                kubectl create secret docker-registry ${IMAGE_PULL_SECRET} \
+                                    --docker-server=https://index.docker.io/v1/ \
+                                    --docker-username=${DOCKER_USER} \
+                                    --docker-password=${DOCKER_PASS} \
+                                    --docker-email=your-email@example.com
+                            '''
+                            
+                            // Update deployment YAML with correct image and secret
+                            sh '''
+                                sed -i "s|{{IMAGE}}|${DOCKER_IMAGE}:${BUILD_NUMBER}|g" k8s/deployment.yaml
+                                sed -i "s|{{APP_NAME}}|${DEPLOYMENT_NAME}|g" k8s/deployment.yaml
+                                sed -i "s|{{IMAGE_PULL_SECRET}}|${IMAGE_PULL_SECRET}|g" k8s/deployment.yaml
+                                kubectl apply -f k8s/deployment.yaml
+                            '''
+                        }
                     }
                 }
             }
         }
-    }
+
 
     post {
         success {
