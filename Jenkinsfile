@@ -21,6 +21,15 @@ pipeline {
             }
         }
 
+        stage('Fix Permissions & Clean') {
+            steps {
+                script {
+                    sh 'sudo chown -R $(id -u):$(id -g) . || true'  // Fix file permissions
+                    sh 'chmod -R a+rX .' // Ensure files are readable
+                }
+            }
+        }
+
         stage('Build & Compile') {
             steps {
                 sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean verify -DskipTests -Dcheckstyle.skip=true'
