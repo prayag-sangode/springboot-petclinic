@@ -8,7 +8,7 @@ pipeline {
         DEPLOYMENT_NAME = "springboot-petclinic"
         SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
-        SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
+        SONAR_LOGIN = credentials('sonarcloud-id')
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
@@ -17,25 +17,25 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm  // Pull the source code from the repository
+                checkout scm
             }
         }
 
         stage('Build & Compile') {
             agent {
-                docker {
+                dockerContainer {
                     image 'maven:3.9.3-eclipse-temurin-17'
                     args '-v $HOME/.m2:/root/.m2'
                 }
             }
             steps {
-                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  //  Compiles project and generates classes
+                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'
             }
         }
 
         stage('SonarQube Analysis') {
             agent {
-                docker {
+                dockerContainer {
                     image 'sonarsource/sonar-scanner-cli:latest'
                     args '--user root -v $PWD:/usr/src'
                 }
@@ -48,7 +48,7 @@ pipeline {
                     -Dsonar.host.url=${SONAR_HOST_URL} \
                     -Dsonar.login=${SONAR_LOGIN} \
                     -Dsonar.sources=src/main/java \
-                    -Dsonar.java.binaries=target/classes  #  Pass compiled classes path
+                    -Dsonar.java.binaries=target/classes
                 """
             }
         }
@@ -56,8 +56,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image from Dockerfile
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
+                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
                 }
             }
         }
@@ -65,10 +64,8 @@ pipeline {
         stage('Push Docker Image to DockerHub') {
             steps {
                 script {
-                    // Log in to Docker Hub
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        // Push the Docker image
                         sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                     }
                 }
@@ -77,24 +74,17 @@ pipeline {
 
         stage('Snyk Security Scan') {
             agent {
-                docker {
-                    image 'maven:3.8.6-openjdk-11'  // Use Maven container
+                dockerContainer {
+                    image 'maven:3.8.6-openjdk-11'
                     args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v $PWD:/project -w /project'
                 }
             }
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        // Install Snyk CLI inside the Maven container
                         sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
-        
-                        // Authenticate Snyk
                         sh 'snyk auth $SNYK_TOKEN'
-        
-                        // Run Snyk Test on Source Code
                         sh 'snyk test || true'
-        
-                        // Run Snyk Test on Docker Image
                         sh 'snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true'
                     }
                 }
@@ -103,14 +93,13 @@ pipeline {
 
         stage('Trivy Scan') {
             agent {
-                docker {
-                    image 'aquasec/trivy:latest'  // Use Trivy as the agent
+                dockerContainer {
+                    image 'aquasec/trivy:latest'
                     args '--user root -v /var/run/docker.sock:/var/run/docker.sock --entrypoint=""'
                 }
             }
             steps {
                 script {
-                    // Run Trivy scan on the Docker image
                     sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}'
                 }
             }
