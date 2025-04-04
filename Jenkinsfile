@@ -74,18 +74,39 @@ pipeline {
             }
         }
 
+        //stage('Snyk Security Scan') {
+        //   steps {
+        //      script {
+        //          withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
+        //              sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
+        //              sh 'snyk auth $SNYK_TOKEN'
+        //             sh 'snyk test || true'
+        //             sh "snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
+        //         }
+        //     }
+        // }
+        //}
+
         stage('Snyk Security Scan') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
-                        sh 'snyk auth $SNYK_TOKEN'
-                        sh 'snyk test || true'
-                        sh "snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
+                        sh '''
+                            docker run --rm \
+                                -e SNYK_TOKEN=$SNYK_TOKEN \
+                                -v /var/run/docker.sock:/var/run/docker.sock \
+                                snyk/snyk-cli test || true
+                            
+                            docker run --rm \
+                                -e SNYK_TOKEN=$SNYK_TOKEN \
+                                -v /var/run/docker.sock:/var/run/docker.sock \
+                                snyk/snyk-cli test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true
+                        '''
                     }
                 }
             }
         }
+        
 
         stage('Trivy Scan') {
             steps {
