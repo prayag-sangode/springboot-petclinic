@@ -27,20 +27,19 @@ pipeline {
             }
         }
 
-
         stage('SonarQube Analysis') {
             steps {
                 sh 'whoami'
                 sh 'pwd'
                 sh 'ls'
                 sh 'ls -l'
-                sh 'chown -R 115:122 /var/lib/jenkins/sonar-cache'
+        
+                // Try only changing permissions instead of ownership
                 sh 'chmod -R 777 /var/lib/jenkins/sonar-cache'
-
+        
                 sh 'docker run --rm -v $PWD:/app -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar -w /app --user 115:122 sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.projectKey=****-sangode_springboot-petclinic -Dsonar.organization=****-sangode -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=**** -Dsonar.sources=. -Dsonar.java.binaries=target/classes'
             }
         }
-
 
         stage('Build Docker Image') {
             steps {
