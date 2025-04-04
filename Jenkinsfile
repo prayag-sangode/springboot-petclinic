@@ -18,20 +18,32 @@ pipeline {
 
         stage('Build & Compile') {
             steps {
-                sh 'docker run --rm -u $(id -u):$(id -g) -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean verify -DskipTests -Dcheckstyle.skip=true'
+                script {
+                    // Ensure target directory is clean
+                    sh 'rm -rf target'
+                    
+                    // Run Maven Build with proper user permissions
+                    sh '''
+                    docker run --rm -u $(id -u):$(id -g) \
+                        -v $PWD:/app -w /app \
+                        maven:3.9.3-eclipse-temurin-17 \
+                        mvn clean verify -DskipTests -Dcheckstyle.skip=true
+                    '''
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
+                    sh 'chmod -R a+rX .' // Ensure readable files
                     sh """
                     docker run --rm -u \$(id -u):\$(id -g) -v "\$PWD:/app" -w /app sonarsource/sonar-scanner-cli:latest \\
                         sonar-scanner \\
-                        -Dsonar.projectKey="${PROJECT_KEY}" \\
-                        -Dsonar.organization="${ORGANIZATION}" \\
-                        -Dsonar.host.url="${SONAR_HOST_URL}" \\
-                        -Dsonar.token="${env.SONAR_LOGIN}" \\
+                        -Dsonar.projectKey=${PROJECT_KEY} \\
+                        -Dsonar.organization=${ORGANIZATION} \\
+                        -Dsonar.host.url=${SONAR_HOST_URL} \\
+                        -Dsonar.token=${env.SONAR_LOGIN} \\
                         -Dsonar.sources=. \\
                         -Dsonar.java.binaries=target/classes \\
                         -Dsonar.scm.disabled=true
@@ -73,7 +85,7 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 script {
-                    sh "docker run --rm aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
                 }
             }
         }
@@ -84,7 +96,7 @@ pipeline {
             echo 'Pipeline completed successfully!'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo ' Pipeline failed!'
         }
     }
 }
