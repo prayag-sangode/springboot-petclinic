@@ -13,6 +13,8 @@ spec:
       labels:
         app: {{APP_NAME}}
     spec:
+      imagePullSecrets:
+      - name: {{IMAGE_PULL_SECRET}}  # Add this line
       containers:
       - name: {{APP_NAME}}
         image: {{IMAGE}}
