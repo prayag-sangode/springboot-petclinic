@@ -14,7 +14,7 @@ pipeline {
         PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
     }
 
-    stages {
+    stages {  
         stage('Checkout') {
             steps {
                 checkout scm  // Pull the source code from the repository
@@ -29,14 +29,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                sh 'whoami'
-                sh 'pwd'
-                sh 'ls -l'
-        
-                // Fix: Change permissions only (avoid ownership issues)
                 sh 'chmod -R 777 /var/lib/jenkins/sonar-cache'
-        
-                // Fix: Securely reference SONAR_LOGIN using withCredentials
                 withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
                     sh '''
                         docker run --rm \
@@ -54,8 +47,7 @@ pipeline {
                 }
             }
         }
-    }
-}
+
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
@@ -93,7 +85,7 @@ pipeline {
                 }
             }
         }
-    }
+    } 
 
     post {
         success {
@@ -103,4 +95,4 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
-}
+} 
