@@ -30,6 +30,10 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
+                sh 'whoami'
+                sh 'ls -ld /app'
+                sh 'ls -ld '/opt/sonar-scanner/*
+                sh 'ls -ld '/opt/sonar-scanner/.sonar/cache'
                 sh 'docker run --rm -v $PWD:/app -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar -w /app --user 115:122 sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.projectKey=****-sangode_springboot-petclinic -Dsonar.organization=****-sangode -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=**** -Dsonar.sources=. -Dsonar.java.binaries=target/classes'
             }
         }
