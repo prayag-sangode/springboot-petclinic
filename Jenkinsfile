@@ -31,6 +31,8 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 sh 'whoami'
+                sh 'pwd'
+                sh 'ls'
                 sh 'chown -R 115:122 /var/lib/jenkins/sonar-cache'
                 sh 'chmod -R 777 /var/lib/jenkins/sonar-cache'
 
