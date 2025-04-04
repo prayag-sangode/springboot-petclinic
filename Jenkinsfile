@@ -31,7 +31,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
-                    sh '''
+                    sh """
                         docker run --rm \
                             -v $PWD:/app \
                             -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar \
@@ -44,7 +44,7 @@ pipeline {
                             -Dsonar.token=$SONAR_TOKEN \
                             -Dsonar.sources=. \
                             -Dsonar.java.binaries=target/classes
-                    '''
+                    """
                 }
             }
         }
@@ -59,8 +59,10 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        sh """
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        """
                     }
                 }
             }
@@ -70,7 +72,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        sh '''
+                        sh """
                             docker run --rm \
                                 -e SNYK_TOKEN=$SNYK_TOKEN \
                                 -v /var/run/docker.sock:/var/run/docker.sock \
@@ -80,7 +82,7 @@ pipeline {
                                 -e SNYK_TOKEN=$SNYK_TOKEN \
                                 -v /var/run/docker.sock:/var/run/docker.sock \
                                 snyk/snyk-cli test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true
-                        '''
+                        """
                     }
                 }
             }
@@ -100,36 +102,36 @@ pipeline {
                     withKubeConfig([credentialsId: 'kubeconfig-id', serverUrl: 'https://127.0.0.1:16443']) {
                         withCredentials([usernamePassword(credentialsId: 'dockerhub-id', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                             
-                            // Create Kubernetes secret for image pull
-                            sh '''
+                            // Ensure secret creation is successful
+                            sh """
                                 kubectl delete secret ${IMAGE_PULL_SECRET} --ignore-not-found -n default
                                 kubectl create secret docker-registry ${IMAGE_PULL_SECRET} \
                                     --docker-server=https://index.docker.io/v1/ \
-                                    --docker-username=${DOCKER_USER} \
-                                    --docker-password=${DOCKER_PASS} \
+                                    --docker-username=$DOCKER_USER \
+                                    --docker-password=$DOCKER_PASS \
                                     --docker-email=your-email@example.com
-                            '''
+                            """
                             
                             // Update deployment YAML with correct image and secret
-                            sh '''
+                            sh """
                                 sed -i "s|{{IMAGE}}|${DOCKER_IMAGE}:${BUILD_NUMBER}|g" k8s/deployment.yaml
                                 sed -i "s|{{APP_NAME}}|${DEPLOYMENT_NAME}|g" k8s/deployment.yaml
                                 sed -i "s|{{IMAGE_PULL_SECRET}}|${IMAGE_PULL_SECRET}|g" k8s/deployment.yaml
                                 kubectl apply -f k8s/deployment.yaml
-                            '''
+                            """
                         }
                     }
                 }
             }
         }
-
+    }
 
     post {
         success {
             echo 'Pipeline completed successfully!'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline failed! Check logs for details.'
         }
     }
 }
