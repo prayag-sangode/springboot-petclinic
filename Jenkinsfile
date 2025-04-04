@@ -2,53 +2,44 @@ pipeline {
     agent any
 
     environment {
+        DOCKER_CREDENTIALS = credentials('dockerhub-id')   
+        KUBECONFIG_FILE = credentials('kubeconfig-id')                    
         DOCKER_IMAGE = "prayags/springboot-petclinic"
         DEPLOYMENT_NAME = "springboot-petclinic"
+        SONAR_SCANNER_HOME = '/opt/sonar-scanner/sonar-scanner-6.2.1.4610-linux-x64'
         SONAR_HOST_URL = 'https://sonarcloud.io'
+        SONAR_LOGIN = credentials('sonarcloud-id') // Sonar login token
         PROJECT_KEY = 'prayag-sangode_springboot-petclinic'
         ORGANIZATION = 'prayag-sangode'
+        PATH = "${env.PATH}:${SONAR_SCANNER_HOME}/bin"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm  // Pull the source code from the repository
             }
         }
 
         stage('Build & Compile') {
             steps {
-                script {
-                    // Ensure target directory is clean
-                    sh 'rm -rf target'
-                    
-                    // Run Maven Build with proper user permissions
-                    sh '''
-                    docker run --rm -u $(id -u):$(id -g) \
-                        -v $PWD:/app -w /app \
-                        maven:3.9.3-eclipse-temurin-17 \
-                        mvn clean verify -DskipTests -Dcheckstyle.skip=true
-                    '''
-                }
+                sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean verify -DskipTests -Dcheckstyle.skip=true'
             }
         }
 
+
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    sh 'chmod -R a+rX .' // Ensure readable files
-                    sh """
-                    docker run --rm -u \$(id -u):\$(id -g) -v "\$PWD:/app" -w /app sonarsource/sonar-scanner-cli:latest \\
-                        sonar-scanner \\
-                        -Dsonar.projectKey=${PROJECT_KEY} \\
-                        -Dsonar.organization=${ORGANIZATION} \\
-                        -Dsonar.host.url=${SONAR_HOST_URL} \\
-                        -Dsonar.token=${env.SONAR_LOGIN} \\
-                        -Dsonar.sources=. \\
-                        -Dsonar.java.binaries=target/classes \\
-                        -Dsonar.scm.disabled=true
-                    """
-                }
+                sh """
+                docker run --rm -v $PWD:/app -w /app sonarsource/sonar-scanner-cli:latest \
+                    sonar-scanner \
+                    -Dsonar.projectKey=${PROJECT_KEY} \
+                    -Dsonar.organization=${ORGANIZATION} \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=${SONAR_LOGIN} \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                """
             }
         }
 
@@ -73,8 +64,8 @@ pipeline {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-                        sh 'mkdir -p ~/.local/bin && curl -Lo ~/.local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x ~/.local/bin/snyk'
-                        sh 'export PATH=$HOME/.local/bin:$PATH && snyk auth $SNYK_TOKEN'
+                        sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
+                        sh 'snyk auth $SNYK_TOKEN'
                         sh 'snyk test || true'
                         sh "snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
                     }
@@ -85,7 +76,7 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 script {
-                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${BUILD_NUMBER}"
                 }
             }
         }
@@ -96,7 +87,7 @@ pipeline {
             echo 'Pipeline completed successfully!'
         }
         failure {
-            echo ' Pipeline failed!'
+            echo 'Pipeline failed!'
         }
     }
 }
