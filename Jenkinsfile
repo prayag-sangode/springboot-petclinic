@@ -117,6 +117,20 @@ pipeline {
         }
     } 
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-id', serverUrl: 'https://127.0.0.1:16443']) {
+                        sh '''
+                            sed -i "s|{{IMAGE}}|${DOCKER_IMAGE}:${BUILD_NUMBER}|g" k8s/deployment.yaml
+                            sed -i "s|{{APP_NAME}}|${DEPLOYMENT_NAME}|g" k8s/deployment.yaml
+                            kubectl apply -f k8s/deployment.yaml
+                        '''
+                    }
+                }
+            }
+        }    
+
     post {
         success {
             echo 'Pipeline completed successfully!'
