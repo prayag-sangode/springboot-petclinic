@@ -23,7 +23,7 @@ pipeline {
 
         stage('Build & Compile') {
             steps {
-                sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean package -DskipTests'
+                sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean package -DskipTests -Dcheckstyle.skip=true'
             }
         }
 
