@@ -17,7 +17,7 @@ pipeline {
     stages {  
         stage('Checkout') {
             steps {
-                checkout scm  // Pull the source code from the repository
+                checkout scm
             }
         }
 
@@ -26,36 +26,27 @@ pipeline {
                 sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean package -DskipTests -Dcheckstyle.skip=true'
             }
         }
-    stage('SonarQube Analysis') {
-        steps {
-            sh 'whoami'
-            sh 'pwd'
-            sh 'ls -l'
-    
-            // Ensure necessary directories exist and have correct permissions
-            sh 'mkdir -p /var/lib/jenkins/sonar-cache /var/lib/jenkins/sonar-tmp'
-            sh 'chmod -R 777 /var/lib/jenkins/sonar-cache /var/lib/jenkins/sonar-tmp'
-    
-            withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
-                sh '''
-                    docker run --rm \
-                        -v $PWD:/app \
-                        -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar \
-                        -v /var/lib/jenkins/sonar-tmp:/tmp \
-                        -w /app --user 115:122 \
-                        sonarsource/sonar-scanner-cli:latest sonar-scanner \
-                        -Dsonar.projectKey=$PROJECT_KEY \
-                        -Dsonar.organization=$ORGANIZATION \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.token=$SONAR_TOKEN \
-                        -Dsonar.sources=. \
-                        -Dsonar.java.binaries=target/classes
-                '''
+
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarcloud-id', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        docker run --rm \
+                            -v $PWD:/app \
+                            -v /var/lib/jenkins/sonar-cache:/opt/sonar-scanner/.sonar \
+                            -v /var/lib/jenkins/sonar-tmp:/tmp \
+                            -w /app --user 115:122 \
+                            sonarsource/sonar-scanner-cli:latest sonar-scanner \
+                            -Dsonar.projectKey=$PROJECT_KEY \
+                            -Dsonar.organization=$ORGANIZATION \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.token=$SONAR_TOKEN \
+                            -Dsonar.sources=. \
+                            -Dsonar.java.binaries=target/classes
+                    '''
+                }
             }
         }
-    }
-
-
 
         stage('Build Docker Image') {
             steps {
@@ -73,19 +64,6 @@ pipeline {
                 }
             }
         }
-
-        //stage('Snyk Security Scan') {
-        //   steps {
-        //      script {
-        //          withCredentials([string(credentialsId: 'snyk-id', variable: 'SNYK_TOKEN')]) {
-        //              sh 'curl -Lo /usr/local/bin/snyk https://github.com/snyk/snyk/releases/latest/download/snyk-linux && chmod +x /usr/local/bin/snyk'
-        //              sh 'snyk auth $SNYK_TOKEN'
-        //             sh 'snyk test || true'
-        //             sh "snyk test --docker ${DOCKER_IMAGE}:${BUILD_NUMBER} || true"
-        //         }
-        //     }
-        // }
-        //}
 
         stage('Snyk Security Scan') {
             steps {
@@ -106,7 +84,6 @@ pipeline {
                 }
             }
         }
-        
 
         stage('Trivy Scan') {
             steps {
@@ -115,8 +92,8 @@ pipeline {
                 }
             }
         }
-    } 
 
+       
         stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -129,7 +106,8 @@ pipeline {
                     }
                 }
             }
-        }    
+        }
+    }
 
     post {
         success {
@@ -139,4 +117,4 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
-} 
+}
