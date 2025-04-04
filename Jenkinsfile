@@ -22,27 +22,16 @@ pipeline {
         }
 
         stage('Build & Compile') {
-            agent {
-                docker {
-                    image 'maven:3.9.3-eclipse-temurin-17'
-                    reuseNode true
-                }
-            }
             steps {
-                sh 'mvn clean verify -DskipTests -Dcheckstyle.skip=true'  // Compiles project and generates classes
+                sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean verify -DskipTests -Dcheckstyle.skip=true'
             }
         }
 
         stage('SonarQube Analysis') {
-            agent {
-                docker {
-                    image 'sonarsource/sonar-scanner-cli:latest'
-                    reuseNode true
-                }
-            }
             steps {
                 sh """
-                sonar-scanner \
+                docker run --rm -v $PWD:/app -w /app sonarsource/sonar-scanner-cli:latest \
+                    sonar-scanner \
                     -Dsonar.projectKey=${PROJECT_KEY} \
                     -Dsonar.organization=${ORGANIZATION} \
                     -Dsonar.host.url=${SONAR_HOST_URL} \
@@ -55,9 +44,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}") // Docker image name
-                }
+                sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
             }
         }
 
