@@ -21,42 +21,25 @@ pipeline {
             }
         }
 
-        stage('Fix Permissions') {
+        stage('Build & Compile') {
             steps {
-                script {
-                    sh 'echo "Fixing file permissions..."'
-                    sh 'find . -type d -exec chmod 755 {} \\; || true'
-                    sh 'find . -type f -exec chmod 644 {} \\; || true'
-                }
+                sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.3-eclipse-temurin-17 mvn clean package -DskipTests'
             }
         }
 
-        stage('Build & Compile') {
-            steps {
-                sh '''
-                docker run --rm --user $(id -u):$(id -g) \
-                    -v "$PWD:/app" -w /app \
-                    maven:3.9.3-eclipse-temurin-17 \
-                    mvn clean verify -DskipTests -Dcheckstyle.skip=true
-                '''
-            }
-        }
 
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    sh """
-                    docker run --rm --user $(id -u):$(id -g) \
-                        -v "\$PWD:/app" -w /app sonarsource/sonar-scanner-cli:latest \\
-                        sonar-scanner \\
-                        -Dsonar.projectKey=${PROJECT_KEY} \\
-                        -Dsonar.organization=${ORGANIZATION} \\
-                        -Dsonar.host.url=${SONAR_HOST_URL} \\
-                        -Dsonar.login=${SONAR_LOGIN} \\
-                        -Dsonar.sources=. \\
-                        -Dsonar.java.binaries=target/classes
-                    """
-                }
+                sh """
+                docker run --rm -v $PWD:/app -w /app sonarsource/sonar-scanner-cli:latest \
+                    sonar-scanner \
+                    -Dsonar.projectKey=${PROJECT_KEY} \
+                    -Dsonar.organization=${ORGANIZATION} \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=${SONAR_LOGIN} \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
+                """
             }
         }
 
@@ -101,10 +84,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo '❌ Pipeline failed!'
+            echo 'Pipeline failed!'
         }
     }
 }
