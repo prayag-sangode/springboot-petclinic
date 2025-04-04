@@ -30,18 +30,10 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                sh """
-                docker run --rm -v $PWD:/app -w /app sonarsource/sonar-scanner-cli:latest \
-                    sonar-scanner \
-                    -Dsonar.projectKey=${PROJECT_KEY} \
-                    -Dsonar.organization=${ORGANIZATION} \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=${SONAR_LOGIN} \
-                    -Dsonar.sources=. \
-                    -Dsonar.java.binaries=target/classes
-                """
+                sh 'docker run --rm -v $PWD:/app -w /app --user $(id -u):$(id -g) sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.projectKey=****-sangode_springboot-petclinic -Dsonar.organization=****-sangode -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=**** -Dsonar.sources=. -Dsonar.java.binaries=target/classes'
             }
         }
+
 
         stage('Build Docker Image') {
             steps {
