@@ -33,7 +33,7 @@ pipeline {
                 sh 'whoami'
                 sh 'pwd'
                 sh 'ls'
-                sh 'll'
+                sh 'ls -l'
                 sh 'chown -R 115:122 /var/lib/jenkins/sonar-cache'
                 sh 'chmod -R 777 /var/lib/jenkins/sonar-cache'
 
