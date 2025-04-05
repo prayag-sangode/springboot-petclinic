@@ -1,0 +1,58 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{APP_NAME}}
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: {{APP_NAME}}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{APP_NAME}}
+  labels:
+    app: {{APP_NAME}}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: {{APP_NAME}}
+  template:
+    metadata:
+      labels:
+        app: {{APP_NAME}}
+    spec:
+      imagePullSecrets:
+        - name: {{IMAGE_PULL_SECRET}}
+      containers:
+        - name: workload
+          image: {{IMAGE}}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: postgres
+            - name: SERVICE_BINDING_ROOT
+              value: /bindings
+            - name: MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED
+              value: "true"
+            - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+              value: "metrics,health,prometheus"
+            - name: SPRING_APPLICATION_JSON
+              value: '{"management":{"endpoints":{"web":{"exposure":{"include":"health,metrics,prometheus"}}},"metrics":{"export":{"prometheus":{"enabled":true}}}}}'
+            - name: POSTGRES_URL
+              value: jdbc:postgresql://postgres-db:5432/petclinic
+            - name: POSTGRES_USER
+              value: petclinic
+            - name: POSTGRES_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-db-secret
+                  key: password
+          ports:
+            - name: http
+              containerPort: 80
