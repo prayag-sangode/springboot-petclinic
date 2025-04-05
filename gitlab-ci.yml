@@ -1,0 +1,106 @@
+# ------------------------------------------------------------
+# Before using this pipeline, make sure your GitLab project
+# has the following CI/CD variables configured:
+#
+# - DOCKER_USER, DOCKER_PASS       (DockerHub credentials)
+# - SONAR_TOKEN                    (SonarCloud access token)
+# - SNYK_TOKEN                     (Snyk access token)
+# - KUBECONFIG                     (Base64 encoded kubeconfig
+#                                   OR use GitLab Kubernetes integration)
+# ------------------------------------------------------------
+
+stages:
+  - checkout
+  - build
+  - sonar
+  - docker-build
+  - docker-push
+  - snyk-scan
+  - trivy-scan
+  - deploy
+
+variables:
+  DOCKER_IMAGE: "prayags/springboot-petclinic"
+  DEPLOYMENT_NAME: "springboot-petclinic"
+  IMAGE_PULL_SECRET: "dockerhub-secret"
+  SONAR_HOST_URL: "https://sonarcloud.io"
+  PROJECT_KEY: "prayag-sangode_springboot-petclinic"
+  ORGANIZATION: "prayag-sangode"
+
+default:
+  image: docker:latest
+  services:
+    - docker:dind
+
+checkout:
+  stage: checkout
+  script:
+    - echo "Checked out repo"
+
+build:
+  stage: build
+  image: maven:3.9.3-eclipse-temurin-17
+  script:
+    - mvn clean package -DskipTests -Dcheckstyle.skip=true
+
+sonar:
+  stage: sonar
+  image: sonarsource/sonar-scanner-cli:latest
+  script:
+    - sonar-scanner \
+        -Dsonar.projectKey=$PROJECT_KEY \
+        -Dsonar.organization=$ORGANIZATION \
+        -Dsonar.host.url=$SONAR_HOST_URL \
+        -Dsonar.token=$SONAR_TOKEN \
+        -Dsonar.sources=. \
+        -Dsonar.java.binaries=target/classes
+  only:
+    - main
+
+docker-build:
+  stage: docker-build
+  script:
+    - docker build -t ${DOCKER_IMAGE}:${CI_PIPELINE_ID} .
+
+docker-push:
+  stage: docker-push
+  script:
+    - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+    - docker push ${DOCKER_IMAGE}:${CI_PIPELINE_ID}
+
+snyk-scan:
+  stage: snyk-scan
+  image: snyk/snyk-cli
+  script:
+    - snyk auth $SNYK_TOKEN
+    - snyk test || true
+    - snyk test --docker ${DOCKER_IMAGE}:${CI_PIPELINE_ID} || true
+
+trivy-scan:
+  stage: trivy-scan
+  image: aquasec/trivy
+  script:
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKER_IMAGE}:${CI_PIPELINE_ID}
+
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBECONFIG" | base64 -d > ~/.kube/config
+  script:
+    - |
+      kubectl delete secret ${IMAGE_PULL_SECRET} --ignore-not-found -n default
+      kubectl create secret docker-registry ${IMAGE_PULL_SECRET} \
+        --docker-server=https://index.docker.io/v1/ \
+        --docker-username=${DOCKER_USER} \
+        --docker-password=${DOCKER_PASS} \
+        --docker-email=your-email@example.com
+      
+      sed -i "s|{{IMAGE}}|${DOCKER_IMAGE}:${CI_PIPELINE_ID}|g" k8s/springboot-deploy.yaml
+      sed -i "s|{{APP_NAME}}|${DEPLOYMENT_NAME}|g" k8s/springboot-deploy.yaml
+      sed -i "s|{{IMAGE_PULL_SECRET}}|${IMAGE_PULL_SECRET}|g" k8s/springboot-deploy.yaml
+      
+      kubectl apply -f k8s/postgres-db-secret.yml
+      kubectl apply -f k8s/postgres-db.yml
+      kubectl apply -f k8s/springboot-deploy.yaml
